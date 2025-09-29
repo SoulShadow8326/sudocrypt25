@@ -1,0 +1,61 @@
+#confetti_div {
+	display: none;
+	transition: all 0.3s;
+	width: 100%;
+	height: 100%;
+	position: relative;
+	align-items: center;
+	justify-content: center;
+}
+
+#confetti_div.show {
+	display: flex;
+}
+
+#confetti_div .center-wrap {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#confetti_div p {
+	color: var(--text);
+	font-weight: 600;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+}
+
+#confetti_div p span {
+	display: block;
+}
+
+#confetti_div .muted {
+	font-size: 1.25rem;
+}
+
+@media (min-width: 640px) {
+	#confetti_div .muted {
+		font-size: 2rem;
+	}
+}
+
+@media (min-width: 1024px) {
+	#confetti_div .muted {
+		font-size: 3rem;
+	}
+}
+
+#canvas {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	max-width: 100vw;
+	max-height: 100vh;
+}

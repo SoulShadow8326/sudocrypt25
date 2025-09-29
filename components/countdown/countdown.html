@@ -1,0 +1,67 @@
+{{define "countdown"}}
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    var second = 1000
+    var minute = second * 60
+    var hour = minute * 60
+    var day = hour * 24
+    var container = document.querySelector('.countdown-container')
+    if (!container) return
+    var ds = container.getAttribute('data-start')
+    var fallback = '2025-11-07T09:00:00+05:30'
+    var countDown = new Date(ds || fallback).getTime()
+    function setText(id, text) {
+        var el = document.getElementById(id)
+        if (el) el.innerText = text
+    }
+    function updateOnce() {
+        var now = new Date().getTime()
+        var distance = countDown - now
+        if (distance < 0) distance = 0
+        setText('days', Math.floor(distance / (day)))
+        setText('hours', Math.floor((distance % (day)) / (hour)))
+        setText('minutes', Math.floor((distance % (hour)) / (minute)))
+        setText('seconds', Math.floor((distance % (minute)) / second))
+        return distance
+    }
+    var distance = updateOnce()
+    var x = setInterval(function() {
+        distance = updateOnce()
+        if (distance === 0) {
+            clearInterval(x)
+            if (window.location.pathname !== '/play') {
+                window.location = '/play'
+            }
+        }
+    }, 1000)
+})
+</script>
+
+<link rel="stylesheet" href="/components/countdown/countdown.css">
+
+<div class="countdown-container">
+    <h1 class="countdown-title">Sudocrypt Starts In</h1>
+    <div class="wrapper">
+        <div id="countdown">
+            <ul class="countdown-list">
+                <li class="countdown-item">
+                    <span id="days" class="number"></span>
+                    <span class="label">days</span>
+                </li>
+                <li class="countdown-item">
+                    <span id="hours" class="number"></span>
+                    <span class="label">Hours</span>
+                </li>
+                <li class="countdown-item">
+                    <span id="minutes" class="number"></span>
+                    <span class="label">Minutes</span>
+                </li>
+                <li class="countdown-item">
+                    <span id="seconds" class="number"></span>
+                    <span class="label">Seconds</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+{{end}}

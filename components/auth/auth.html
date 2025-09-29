@@ -1,0 +1,97 @@
+{{define "auth"}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="../assets/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#131520" />
+    <meta name="description" content="Website for Exun Sudocrypt 2025" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+
+    <title>Sudocrypt | Login</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+    <link rel="stylesheet" href="../main.css">
+    <link rel="stylesheet" href="/components/main.css">
+    <link rel="stylesheet" href="/components/auth/auth.css">
+
+    <script>
+        function OnPhoneNumberInput(event) {
+            var result=event.target.value.replaceAll(/\D/g, '');
+            if (result.length>10) {
+                result=result.slice(0, 10)
+            }
+            event.target.value=result;
+        }
+    </script>
+
+</head>
+
+<body>
+    <div class="auth-page">
+
+    {{template "header" .}}
+
+        <div class="auth-outer">
+            <div class="auth-card">
+
+                <div class="auth-brand">
+                    <img src="../assets/sudo.png" alt="">
+                    <p class="auth-title" id="authTxt">Signup</p>
+                    <a href="mailto:exun@dpsrkp.net" class="auth-help">Need Help?</a>
+                </div>
+
+                <div class="auth-form">
+
+                    <div class="input-list" id="inputList">
+                        <input id="name" type="text" placeholder="Enter your name" class="auth-input">
+                        <input id="phonenumber" oninput="eval(`OnPhoneNumberInput(event)` )" placeholder="Enter your Phone Number" class="auth-input">
+                        <input id="email" type="text" placeholder="Enter your email" class="auth-input">
+                        <input id="password" type="password" placeholder="Enter your password" class="auth-input">
+                    </div>
+
+                    <div id="otpform_container" class="otp-container hidden">
+                        <div class="otp-header">
+                            <h1 class="text-2xl font-bold">Email Verification</h1>
+                            <p class="auth-help">Enter the 6-digit verification code that was sent to your mail.</p>
+                        </div>
+                        <div id="otp-form">
+                            <div class="otp-inputs">
+                                <input type="number" class="otp-input" maxlength="1" />
+                                <input type="number" class="otp-input" maxlength="1" />
+                                <input type="number" class="otp-input" maxlength="1" />
+                                <input type="number" class="otp-input" maxlength="1" />
+                                <input type="number" class="otp-input" maxlength="1" />
+                                <input type="number" class="otp-input" maxlength="1" />
+                            </div>
+                        </div>
+                        <div class="resend" id="resend_otp">Didn't receive code? <a class="auth-help" style="cursor: pointer;">Resend</a></div>
+                    </div>
+
+                    <div class="actions">
+                        <div class="action-wrap" style="width:100%;display:flex;flex-direction:column;gap:0.75rem;">
+                            <p id="modeToggle" class="auth-help" style="cursor:pointer;margin:0;padding:0;align-self:flex-start;">Already Registered?</p>
+                            <button id="submit" class="primary-button">Signup</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script defer type="module" src="/components/auth/login.js"></script>
+
+    {{template "footer" .}}
+
+</body>
+
+</html>
+{{end}}
