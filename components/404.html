@@ -8,36 +8,147 @@
     <link rel="stylesheet" href="/components/main.css">
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;500;700;800;900&display=swap');
-    :root{--bg:#0d0e11;--text:#ffffff;--muted:rgba(255,255,255,0.7);--primary:#c7110d}
-    *{box-sizing:border-box}
-    html,body{height:100%;margin:0}
-    body{font-family:Montserrat, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased}
-    .page{width:100%;min-height:100vh;display:flex;flex-direction:column}
-    .site-header{display:flex;align-items:center;justify-content:space-between;padding:18px 28px}
-    .brand{display:flex;align-items:center;gap:12px}
-    .logo-img{width:56px;height:56px;object-fit:contain}
-    .site-title{font-weight:800;font-size:20px;color:var(--text);text-decoration:none}
-    .nav-links{display:flex;gap:22px;align-items:center}
-    .nav-links a{color:var(--text);text-decoration:none;font-weight:500}
-    .nav-links a:hover,.nav-links a.active{color:var(--primary)}
-    .section{padding:0;flex:1}
-    .transition-container{width:100%}
-    .inner{max-width:1100px;margin:0 auto;padding:36px 20px}
-    .notfound-wrap{display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;padding-top:10rem}
-    .notfound-svg{width:120px;height:120px}
-    .main-title{font-size:40px;margin:0;font-weight:800}
-    @media(min-width:640px){.main-title{font-size:56px}}
-    .notfound-copy{color:var(--muted);max-width:800px;margin:0}
-    .btn{font-family: "Montserrat";border:1px solid rgba(255,255,255,0.12);background:transparent;color:var(--text);padding:8px 12px;border-radius:4px;cursor:pointer}
-    .btn--primary{background:var(--primary);color:#fff;border-color:var(--primary)}
-    footer{border-top:1px solid rgba(255,255,255,0.05);margin-top:48px;padding:28px 20px;text-align:center;color:rgba(255,255,255,0.6)}
+
+    :root {
+        --bg: #0d0e11;
+        --text: #ffffff;
+        --muted: rgba(255, 255, 255, 0.7);
+        --primary: #c7110d;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    html, body {
+        height: 100%;
+        margin: 0;
+    }
+
+    body {
+        font-family: Montserrat, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+        background: var(--bg);
+        color: var(--text);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .site-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 28px;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .logo-img {
+        width: 56px;
+        height: 56px;
+        object-fit: contain;
+    }
+
+    .site-title {
+        font-weight: 800;
+        font-size: 20px;
+        color: var(--text);
+        text-decoration: none;
+    }
+
+    .nav-links {
+        display: flex;
+        gap: 22px;
+        align-items: center;
+    }
+
+    .nav-links a {
+        color: var(--text);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .nav-links a:hover,
+    .nav-links a.active {
+        color: var(--primary);
+    }
+
+    .section {
+        padding: 0;
+        flex: 1;
+    }
+
+    .transition-container {
+        width: 100%;
+    }
+
+    .inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 36px 20px;
+    }
+
+    .notfound-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 18px;
+        text-align: center;
+        padding-top: 10rem;
+    }
+
+    .notfound-svg {
+        width: 120px;
+        height: 120px;
+    }
+
+    .main-title {
+        font-size: 40px;
+        margin: 0;
+        font-weight: 800;
+    }
+
+    @media (min-width: 640px) {
+        .main-title { font-size: 56px; }
+    }
+
+    .notfound-copy {
+        color: var(--muted);
+        max-width: 800px;
+        margin: 0;
+    }
+
+    .btn {
+        font-family: "Montserrat";
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: transparent;
+        color: var(--text);
+        padding: 8px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .btn--primary {
+        background: var(--primary);
+        color: #fff;
+        border-color: var(--primary);
+    }
+
+    footer {
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        margin-top: 48px;
+        padding: 28px 20px;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.6);
+    }
     </style>
 </head>
 <body data-page="404">
-    <div class="page">
     {{template "header" .}}
     <div class="section">
-        <div class="transition-container">
+        <div class="transition-container" style="padding-bottom: 7vw;">
             <div class="inner">
                 <div class="notfound-wrap">
             <svg fill="#c7110d" height="80px" width="80px" version="1.1" id="Capa_1" viewBox="0 0 60 60" xml:space="preserve">
@@ -50,7 +161,7 @@
                 <path d="M3,11h39V3H3V11z M5,5h35v4H5V5z"/>
             </g>
             </svg>
-                    <h1 class="main-title">404 — Page not found</h1>
+                    <h1 class="main-title">Page not found</h1>
                     <p class="notfound-copy">The page you are looking for does not exist or you do not have permission to view it.</p>
                     <div style="display:flex; gap:12px; justify-content:center; margin-top:16px;">
                         <button class="btn btn--primary" onclick="window.location.href='/'">Go to Home</button>
@@ -61,6 +172,5 @@
         </div>
     </div>
     {{template "footer" .}}
-    </div>
 </body>
 </html>

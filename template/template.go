@@ -9,9 +9,11 @@ import (
 var templates *template.Template
 
 type TemplateData struct {
-	PageTitle   string
-	CurrentPath string
-	User        map[string]interface{}
+	PageTitle       string
+	CurrentPath     string
+	User            map[string]interface{}
+	TimeGateStart   string
+	IsAuthenticated bool
 }
 
 func InitTemplates() error {

@@ -3,11 +3,10 @@ package handlers
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
-
-	"sudocrypt25/db"
+	"time"
 )
 
 type contextKey string
@@ -31,8 +30,7 @@ func AuthMiddleware(dbConn *sql.DB) func(http.Handler) http.Handler {
 			}
 
 			sid := c.Value
-			v, err := db.Get(dbConn, "sessions", sid)
-			if err != nil || v == "" {
+			if sid == "" {
 				accept := r.Header.Get("Accept")
 				if strings.Contains(accept, "application/json") {
 					w.Header().Set("Content-Type", "application/json")
@@ -43,10 +41,7 @@ func AuthMiddleware(dbConn *sql.DB) func(http.Handler) http.Handler {
 				http.Redirect(w, r, "/auth", http.StatusFound)
 				return
 			}
-
-			var user map[string]interface{}
-			_ = json.Unmarshal([]byte(v), &user)
-			ctx := context.WithValue(r.Context(), userContextKey, user)
+			ctx := context.WithValue(r.Context(), userContextKey, map[string]interface{}{"session_id": sid})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -59,4 +54,17 @@ func UserFromContext(ctx context.Context) (map[string]interface{}, bool) {
 	}
 	m, ok := u.(map[string]interface{})
 	return m, ok
+}
+
+func IsTimeGateOpen() bool {
+	ds := os.Getenv("TIMEGATE_START")
+	if ds == "" {
+		ds = "2025-11-07T09:00:00+05:30"
+	}
+	t, err := time.Parse(time.RFC3339, ds)
+	if err != nil {
+		return true
+	}
+	now := time.Now()
+	return !now.Before(t)
 }

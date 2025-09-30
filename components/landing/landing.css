@@ -25,12 +25,6 @@ body {
   background: var(--background);
 }
 
-.page {
-  position: relative;
-  width: 100vw;
-  min-height: 100vh; 
-}
-
 .section {
   width: 100%;
   display: block;

@@ -11,7 +11,7 @@
         <a href="/">Home</a>
         <a href="/play">Play</a>
         <a href="/leaderboard">Leaderboard</a>
-        <a href="{status_url}">{status}</a>
+<!--        <a href="{status_url}">{status}</a>
 
         <div class="announcements">
             <div id="announcementsToggleBtn" class="announcements-toggle" title="Notifications">
@@ -49,10 +49,19 @@
             </div>
         </div>
         `
-        </script>
+        </script> 
 
-    <script defer type="module" src="/components/annoucements/annoucements.js"></script>
+    <script defer type="module" src="/components/annoucements/annoucements.js"></script> -->
     <link rel="stylesheet" href="/components/header/header.css">
+    <div data-nav="auth">
+            {{if .IsAuthenticated}}
+            <button class="auth_btn" data-action="logout">Logout</button>
+            {{else}}
+            <button class="auth_btn" data-action="login">Login</button>
+            {{end}}
+        </div>
+    </div>
     </div>
 </div>
+<script defer src="/components/header/navigation.js"></script>
 {{end}}

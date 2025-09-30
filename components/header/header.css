@@ -248,3 +248,26 @@
 	display: none;
 }
 
+.auth_btn{
+        display: block;
+        width: 96px;
+        height: 48px;
+        padding: 0;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 10px;
+        text-align: center;
+        box-sizing: border-box;
+        background: #c7110d;
+        color: #ffffff!important;
+        border: none;
+		transition: transform 0.15s cubic-bezier(.17,.67,.83,.67), box-shadow 0.15s cubic-bezier(.17,.67,.83,.67);
+		cursor: pointer;
+}
+.auth_btn:hover {
+	transform: scale(1.05);
+	box-shadow: 0 8px 20px rgba(0,0,0,0.35);
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
