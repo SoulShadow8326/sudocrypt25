@@ -11,7 +11,7 @@ import (
 	"sudocrypt25/template"
 )
 
-func InitRoutes(dbConn *sql.DB) {
+func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	handlers.InitHandlers()
 	template.InitTemplates()
 	http.Handle("/components/", http.StripPrefix("/components/", http.FileServer(http.Dir("components"))))
@@ -80,8 +80,11 @@ func InitRoutes(dbConn *sql.DB) {
 			return
 		}
 		if !handlers.IsTimeGateOpen() {
-			http.Redirect(w, r, "/timegate", http.StatusFound)
-			return
+			c, err := r.Cookie("email")
+			if err != nil || c.Value == "" || admins == nil || !admins.IsAdmin(c.Value) {
+				http.Redirect(w, r, "/timegate", http.StatusFound)
+				return
+			}
 		}
 		td := template.TemplateData{PageTitle: "Play", CurrentPath: r.URL.Path}
 		if err := template.RenderTemplate(w, "play", td); err != nil {
@@ -95,8 +98,11 @@ func InitRoutes(dbConn *sql.DB) {
 			return
 		}
 		if !handlers.IsTimeGateOpen() {
-			http.Redirect(w, r, "/timegate", http.StatusFound)
-			return
+			c, err := r.Cookie("email")
+			if err != nil || c.Value == "" || admins == nil || !admins.IsAdmin(c.Value) {
+				http.Redirect(w, r, "/timegate", http.StatusFound)
+				return
+			}
 		}
 		td := template.TemplateData{PageTitle: "Leaderboard", CurrentPath: r.URL.Path}
 		if err := template.RenderTemplate(w, "leaderboard", td); err != nil {

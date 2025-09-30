@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	dbpkg "sudocrypt25/db"
+	handlers "sudocrypt25/handlers"
 	routes "sudocrypt25/routes"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -53,7 +54,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	routes.InitRoutes(dbConn)
+	admins := handlers.NewAdmins(os.Getenv("ADMIN_EMAILS"))
+	routes.InitRoutes(dbConn, admins)
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

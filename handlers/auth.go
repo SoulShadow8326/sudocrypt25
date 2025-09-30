@@ -216,6 +216,8 @@ func ApiAuthHandler(dbConn *sql.DB) http.HandlerFunc {
 			sid := hashHex(fmt.Sprintf("%s:%d", email, time.Now().UnixNano()))
 			cookie := &http.Cookie{Name: "session_id", Value: sid, Path: "/", HttpOnly: true}
 			http.SetCookie(w, cookie)
+			emailCookie := &http.Cookie{Name: "email", Value: email, Path: "/", HttpOnly: true}
+			http.SetCookie(w, emailCookie)
 			db.Set(dbConn, "emails", email, fmt.Sprintf("%d", time.Now().Unix()))
 			reg := map[string]string{"email": email, "name": name, "phonenumber": ph, "password": hashHex(password)}
 			rb, _ := json.Marshal(reg)
@@ -256,6 +258,8 @@ func ApiAuthHandler(dbConn *sql.DB) http.HandlerFunc {
 			sid := hashHex(fmt.Sprintf("%s:%d", email, time.Now().UnixNano()))
 			cookie := &http.Cookie{Name: "session_id", Value: sid, Path: "/", HttpOnly: true}
 			http.SetCookie(w, cookie)
+			emailCookie := &http.Cookie{Name: "email", Value: email, Path: "/", HttpOnly: true}
+			http.SetCookie(w, emailCookie)
 			json.NewEncoder(w).Encode(map[string]bool{"success": true})
 			return
 		}
