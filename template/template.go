@@ -2,8 +2,10 @@ package template
 
 import (
 	"html/template"
+	"io/fs"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 var templates *template.Template
@@ -17,17 +19,30 @@ type TemplateData struct {
 }
 
 func InitTemplates() error {
-	var err error
-	templates, err = template.ParseGlob("components/*/*.html")
+	var files []string
+	err := filepath.WalkDir("components", func(path string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() {
+			return nil
+		}
+		if filepath.Ext(path) == ".html" {
+			files = append(files, path)
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
-	extra, err := template.ParseGlob("components/*.html")
-	if err == nil {
-		for _, t := range extra.Templates() {
-			templates.AddParseTree(t.Name(), t.Tree)
-		}
+	if len(files) == 0 {
+		return nil
 	}
+	t, err := template.ParseFiles(files...)
+	if err != nil {
+		return err
+	}
+	templates = t
 	return nil
 }
 

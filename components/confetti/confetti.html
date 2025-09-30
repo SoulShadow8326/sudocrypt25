@@ -1,16 +1,16 @@
 {{define "confetti"}}
-<link rel="stylesheet" href="/components/confetti/confetti.css">
-
-<div id="confetti_div" class="confetti">
-    <div class="center-wrap">
-        <p>
-            <span class="muted">We're celebrating the</span>
-            <span>15th year of <span style="color:var(--primary)">Sudocrypt</span></span>
+<div id="confetti_div" style="display: none; transition: all 0.2s ease; width: 100%; height: 100%; align-items: center; justify-content: center;">
+    <div style="width: 100%; height: 80%; display: flex; align-items: center; justify-content: center;">
+        <p style="font-size: clamp(30px, 4vw, 72px); font-weight: 600; display: flex; flex-direction: column; align-items: center; margin: 0;">
+            <span style="font-size: clamp(24px, 3vw, 48px);">We're celebrating the</span>
+            <span style="font-size: inherit;">15th year of <span style="color: #c7110d;">Sudocrypt</span></span>
         </p>
     </div>
 
-    <canvas id="canvas"></canvas>
+    <canvas id="canvas" style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; max-width: 100vw; max-height: 100vh;
+        pointer-events: none;
+        "></canvas>
 </div>
 
-<script type="module" src="/components/confetti/confetti.js"></script>
+<script type="module" src="components/confetti/confetti.js"></script>
 {{end}}

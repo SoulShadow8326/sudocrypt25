@@ -21,22 +21,21 @@
 </head>
 
 <body>
-
     {{template "header" .}}
-
+    
     {{template "confetti" .}}
 
         <div id="random" class="section">
             <div class="transition-container">
-                <div class="inner">
+                <div class="inner" padding-bottom: 1rem;>
                     <h4 class="main-title">Sudocrypt <span style="color: #c7110d;">v15.0</span></h4>
                     <div class="wrapper">
                         <div class="intro">
-                            <p style="text-align: center;">This is a platform created by <a href="https://exunclan.com/" target="_blank" class="link">Exun Clan</a>.</p>
-                            <p style="text-align: center;">All participants are recommended to read the <a href="https://exun.co/resources/cryptic" target="_blank" class="link">Cryptic Hunt resources</a>.</p>
+                            <p style="text-align: center;">This is a platform created by <a href="https://exunclan.com/" target="_blank" class="link" style="font-weight: 550;">Exun Clan</a>.</p>
+                            <p style="text-align: center;">All participants are recommended to read the <a href="https://exun.co/resources/cryptic" target="_blank" class="link" style="font-weight: 550;">Cryptic Hunt resources</a>.</p>
 
                             <div class="notice" style="text-align: center;">
-                                <p><span class="highlight">Sudocrypt V15.0</span> is back! The technology club of DPS R.K. Puram, <strong>Exun Clan</strong>, is returning with its eagerly anticipated annual <span class="highlight">International Cryptic Hunt</span> x <span class="highlight">Capture the Flag (CTF)</span> event. Sudocrypt is an international online cryptic hunt where participants from around the world compete to solve levels in the least amount of time.
+                                <p><span class="highlight">Sudocrypt V15.0</span> is back!<br> The technology club of DPS R.K. Puram, <strong>Exun Clan</strong>, is returning with its eagerly anticipated annual <span class="highlight">International Cryptic Hunt</span> x <span class="highlight">Capture the Flag (CTF)</span> event. Sudocrypt is an international online cryptic hunt where participants from around the world compete to solve levels in the least amount of time.
                                     <br><br>
                                     While solving code-breaking, cryptography, and CTF challenges, <span class="highlight">Sudocrypt V15.0</span> introduces a reinvented format with thrilling cash rewards totaling up to $600 USD (50,000 INR).
                                     <br><br>
@@ -87,9 +86,8 @@
                     {{template "countdown" .}}
                 </div>
             </div>
-        </div>
+        </div>  
         {{template "footer" .}}
-
 </body>
 
 </html>

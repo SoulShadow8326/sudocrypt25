@@ -103,7 +103,7 @@ body {
 
 .notice {
   margin: 0.75rem 0;
-  padding: 1rem 1rem 0rem;
+  padding: 0rem 1rem 0rem;
   background: var(--background);
   border: 1px solid #c7100d80;
   border-radius: 0.5rem;
@@ -114,6 +114,7 @@ body {
 
 .highlight {
   color: var(--primary);
+  font-weight: 550;
 }
 
 .prizes {
