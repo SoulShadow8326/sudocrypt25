@@ -46,14 +46,18 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 		}
 	})
 	http.HandleFunc("/404", func(w http.ResponseWriter, r *http.Request) {
-		td := template.TemplateData{PageTitle: "Not Found", CurrentPath: r.URL.Path}
+		_, err := r.Cookie("session_id")
+		auth := err == nil
+		td := template.TemplateData{PageTitle: "Not Found", CurrentPath: r.URL.Path, IsAuthenticated: auth}
 		if err := template.RenderFile(w, "components/404.html", td); err != nil {
 			fmt.Printf("render /404 failed: %v\n", err)
 			http.ServeFile(w, r, "components/404.html")
 		}
 	})
 	http.HandleFunc("/404/", func(w http.ResponseWriter, r *http.Request) {
-		td := template.TemplateData{PageTitle: "Not Found", CurrentPath: r.URL.Path}
+		_, err := r.Cookie("session_id")
+		auth := err == nil
+		td := template.TemplateData{PageTitle: "Not Found", CurrentPath: r.URL.Path, IsAuthenticated: auth}
 		if err := template.RenderFile(w, "components/404.html", td); err != nil {
 			fmt.Printf("render /404 failed: %v\n", err)
 			http.ServeFile(w, r, "components/404.html")
@@ -63,7 +67,9 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	http.HandleFunc("/api/auth", handlers.ApiAuthHandler(dbConn))
 	http.HandleFunc("/api/announcements", handlers.AnnouncementsHandler(dbConn))
 	http.HandleFunc("/timegate", func(w http.ResponseWriter, r *http.Request) {
-		td := template.TemplateData{PageTitle: "Time Gate", CurrentPath: r.URL.Path}
+		_, err := r.Cookie("session_id")
+		auth := err == nil
+		td := template.TemplateData{PageTitle: "Time Gate", CurrentPath: r.URL.Path, IsAuthenticated: auth}
 		if err := template.RenderFile(w, "components/timegate.html", td); err != nil {
 			http.ServeFile(w, r, "components/timegate.html")
 		}
@@ -79,14 +85,15 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 			http.Redirect(w, r, "/auth?toast=1&from=/play", http.StatusFound)
 			return
 		}
+		auth := true
 		if !handlers.IsTimeGateOpen() {
 			c, err := r.Cookie("email")
 			if err != nil || c.Value == "" || admins == nil || !admins.IsAdmin(c.Value) {
-				http.Redirect(w, r, "/timegate", http.StatusFound)
+				http.Redirect(w, r, "/timegate?toast=1&from=/play", http.StatusFound)
 				return
 			}
 		}
-		td := template.TemplateData{PageTitle: "Play", CurrentPath: r.URL.Path}
+		td := template.TemplateData{PageTitle: "Play", CurrentPath: r.URL.Path, IsAuthenticated: auth}
 		if err := template.RenderTemplate(w, "play", td); err != nil {
 			http.ServeFile(w, r, "components/play/play.html")
 		}
@@ -97,14 +104,15 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 			http.Redirect(w, r, "/auth?toast=1&from=/leaderboard", http.StatusFound)
 			return
 		}
+		auth := true
 		if !handlers.IsTimeGateOpen() {
 			c, err := r.Cookie("email")
 			if err != nil || c.Value == "" || admins == nil || !admins.IsAdmin(c.Value) {
-				http.Redirect(w, r, "/timegate", http.StatusFound)
+				http.Redirect(w, r, "/timegate?toast=1&from=/leaderboard", http.StatusFound)
 				return
 			}
 		}
-		td := template.TemplateData{PageTitle: "Leaderboard", CurrentPath: r.URL.Path}
+		td := template.TemplateData{PageTitle: "Leaderboard", CurrentPath: r.URL.Path, IsAuthenticated: auth}
 		if err := template.RenderTemplate(w, "leaderboard", td); err != nil {
 			http.ServeFile(w, r, "components/leaderboard/leaderboard.html")
 		}

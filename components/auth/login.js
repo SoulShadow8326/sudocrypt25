@@ -146,7 +146,7 @@ submitBtn && submitBtn.addEventListener('click', async (e) => {
             const j = await res.json().catch(() => ({}))
             if (res.ok) {
                 showToast('Auth successful')
-                window.location.href = '/play'
+                window.location.href = '/play?auth=signup'
             } else {
                 showToast(j.error || 'Signup failed', false)
             }
@@ -166,7 +166,7 @@ submitBtn && submitBtn.addEventListener('click', async (e) => {
             const j = await res.json().catch(() => ({}))
             if (res.ok) {
                 showToast('Login successful')
-                window.location.href = '/'
+                window.location.href = '/play?auth=login'
             } else {
                 showToast(j.error || 'Login failed', false)
             }
@@ -185,6 +185,17 @@ function handleRedirectToast() {
             const cleanUrl = window.location.pathname + window.location.hash
             if (history && history.replaceState) {
                 history.replaceState(null, '', cleanUrl)
+            }
+        }
+        const authType = params.get('auth')
+        if (authType === 'login' || authType === 'signup') {
+            if (window.location.pathname === '/play') {
+                if (authType === 'login') showToast('Login successful')
+                if (authType === 'signup') showToast('Auth successful')
+                const cleanUrl = window.location.pathname + window.location.hash
+                if (history && history.replaceState) {
+                    history.replaceState(null, '', cleanUrl)
+                }
             }
         }
     } catch (err) {

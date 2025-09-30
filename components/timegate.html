@@ -17,6 +17,8 @@
         href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap">
     <link rel="stylesheet" href="/components/main.css">
     <link rel="stylesheet" href="/components/landing/landing.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
 </head>
 
 <body>
@@ -34,6 +36,25 @@
         </div>
         {{template "footer" .}}
 
+<script>
+try {
+    const params = new URLSearchParams(window.location.search || '')
+    if (params.get('toast') === '1') {
+        const from = params.get('from') || ''
+        const notyf = typeof Notyf !== 'undefined' ? new Notyf() : null
+        if (notyf) {
+            notyf.success('Login successful please wait for Sudocrypt v15.0 to start')
+        } else {
+            alert('Login successful please wait for Sudocrypt v15.0 to start')
+        }
+        const cleanUrl = window.location.pathname + window.location.hash
+        if (history && history.replaceState) {
+            history.replaceState(null, '', cleanUrl)
+        }
+    }
+} catch (err) {
+}
+</script>
 </body>
 
 </html>
