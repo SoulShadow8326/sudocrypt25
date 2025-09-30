@@ -33,6 +33,8 @@
 	display: flex;
 	list-style: none;
 	margin: 0;
+	padding-left: 15px !important;
+	padding-top: 0px !important;
 	justify-content: center;
 }
 
