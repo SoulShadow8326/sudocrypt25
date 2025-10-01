@@ -19,8 +19,15 @@
     <link rel="stylesheet" href="/components/landing/landing.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
     <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+    <style>
+    @media (max-width: 767px) {
+        #random { padding-bottom: 50vh !important; }
+    }
+    @media (max-width: 420px) {
+        #random { padding-bottom: 55vh !important; }
+    }
+    </style>
 </head>
-
 <body>
 
     {{template "header" .}}
