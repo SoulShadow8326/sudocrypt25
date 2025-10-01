@@ -3,31 +3,18 @@ package main
 import (
 	"bufio"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"sort"
 	"strings"
-	"time"
 
-	"sudocrypt25/db"
 	dbpkg "sudocrypt25/db"
 	handlers "sudocrypt25/handlers"
 	routes "sudocrypt25/routes"
 
 	_ "github.com/mattn/go-sqlite3"
 )
-
-type lbe struct {
-	Email  string  `json:"email"`
-	Name   string  `json:"name"`
-	Points int     `json:"points"`
-	Time   float64 `json:"time"`
-}
-
-var dbConn *sql.DB
 
 func main() {
 	if _, err := os.Stat(".env"); err == nil {
@@ -57,39 +44,6 @@ func main() {
 		}
 	}
 	dbConn, err := sql.Open("sqlite3", "./data.db")
-	sample := lbe{
-		Email:  "fuck@me.com",
-		Name:   "ad",
-		Points: 5,
-		Time:   float64(time.Now().Unix()),
-	}
-	b, _ := json.Marshal(sample)
-	if err := db.Set(dbConn, "leaderboard", sample.Email, string(b)); err != nil {
-		log.Fatal((err))
-	}
-	data, err := db.GetAll(dbConn, "leaderboard")
-	if err != nil {
-		log.Fatal((err))
-	}
-	entries := []lbe{}
-	for _, v := range data {
-		var e lbe
-		if err := json.Unmarshal([]byte(v), &e); err != nil {
-			log.Println("skip", err)
-			continue
-		}
-		entries = append(entries, e)
-	} //sortering
-	sort.Slice(entries, func(i, j int) bool {
-		if entries[i].Points == entries[j].Points {
-			return entries[i].Time < entries[j].Time
-		}
-		return entries[i].Points > entries[j].Points
-	})
-	fmt.Println("leaderboard:")
-	for i, e := range entries {
-		fmt.Printf("%d. %s (%s) - %d points\n", i+1, e.Name, e.Email, e.Points)
-	}
 	if err != nil {
 		log.Fatal(err)
 	}
