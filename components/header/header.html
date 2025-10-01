@@ -52,13 +52,38 @@
         </script> 
 
     <script defer type="module" src="/components/annoucements/annoucements.js"></script> -->
-    <link rel="stylesheet" href="/components/header/header.css">
     <div data-nav="auth">
             {{if .IsAuthenticated}}
             <button class="auth_btn" data-action="logout">Logout</button>
             {{else}}
             <button class="auth_btn" data-action="login">Login</button>
             {{end}}
+    </div>
+    </div>
+    <link rel="stylesheet" href="/components/header/header.css">
+    <button class="hamburger" aria-label="Open menu" aria-expanded="false">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <div class="mobile-menu" id="mobileMenu" aria-hidden="true">
+        <button class="mobile-close" aria-label="Close menu">×</button>
+        <div class="mobile-menu-inner">
+            <nav class="mobile-nav">
+                <a href="/">Home</a>
+                <a href="/play">Play</a>
+                <a href="/leaderboard">Leaderboard</a>
+            </nav>
+            <div class="mobile-auth" data-nav="auth">
+                <div data-nav="auth">
+                    {{if .IsAuthenticated}}
+                    <button class="auth_btn" data-action="logout">Logout</button>
+                    {{else}}
+                    <button class="auth_btn" data-action="login">Login</button>
+                    {{end}}
+                </div>
+            </div>
         </div>
     </div>
     </div>

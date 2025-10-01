@@ -271,3 +271,72 @@
 	-webkit-tap-highlight-color: transparent;
 }
 
+.hamburger{
+	display:none;
+	background: transparent;
+	border: none;
+	padding: 8px;
+	cursor: pointer;
+}
+.hamburger-box{ display: inline-block; width: 28px; height: 18px; position: relative; }
+.hamburger-inner{
+	position: absolute; top: 50%; left: 0; right: 0; height: 2px; background: #fff; transform: translateY(-50%);
+}
+.hamburger-inner:before, .hamburger-inner:after{
+	content: '';
+	position: absolute; left: 0; right: 0; height: 2px; background: #fff;
+}
+.hamburger-inner:before{ top: -8px; }
+.hamburger-inner:after{ top: 8px; }
+
+.mobile-menu{
+	position: fixed;
+	top: 0;
+	right: 0;
+	height: 100vh;
+	width: 320px;
+	max-width: 80vw;
+	background: rgba(10,10,10,0.96);
+	transform: translateX(110%);
+	transition: transform 320ms ease;
+	z-index: 999;
+	box-shadow: -20px 0 40px rgba(0,0,0,0.45);
+	backdrop-filter: blur(6px);
+}
+.mobile-menu.open{ transform: translateX(0); }
+.mobile-menu-inner{ padding: 24px; display:flex; flex-direction:column; gap:16px; height:100%; box-sizing:border-box; }
+.mobile-menu .mobile-close{
+	position:absolute;
+	top:12px;
+	right:12px;
+	background:transparent;
+	border:none;
+	color:#fff;
+	font-size:28px;
+	line-height:1;
+	cursor:pointer;
+}
+.mobile-nav{ display:flex; flex-direction:column; gap:28px; margin-top:0; flex:1; justify-content:center; align-items:center; }
+.mobile-nav a{ color:#fff; text-decoration:none; font-weight:700; padding:14px 20px; font-size:20px; width:100%; max-width:260px; text-align:center; display:inline-block; }
+
+.mobile-auth{ display:flex; justify-content:center; padding-bottom:28px; }
+.mobile-auth .auth_btn{ width:160px; height:44px; }
+
+.page-blur-overlay{
+	position: fixed;
+	inset: 0;
+	background: rgba(0,0,0,0.25);
+	backdrop-filter: blur(1px);
+	z-index: 990;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 200ms ease;
+}
+.page-blur-overlay.visible{ opacity: 1; pointer-events: auto; }
+
+@media (max-width: 767px){
+	.nav-links{ display:none; }
+	.hamburger{ display:inline-flex; align-items:center; }
+}
+
+
