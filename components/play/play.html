@@ -30,9 +30,73 @@
 </head>
 
 <body>
-    {{template "header" .}}
-        <div style="height: 42vw;"></div>
-    {{template "footer" .}}
+
+    <script hint="{sourcehint}">
+        console.log("{sourcehint}")
+        function OnLevelTypeChange(event) {
+            if (event.target.checked) {
+                window.location="/play?type=ctf"
+            } else {
+                window.location="/play"
+            }
+        }
+        setTimeout(()=>{
+            var levelType=new URLSearchParams((new URL(window.location.href)).search).get("type")
+            if (levelType=="ctf") {
+                document.getElementById("leveltype").checked=true
+            }
+        }, 100)
+    </script>
+
+    <script>
+        var level_Answer_Hash="{level_Answer_Hash}";
+    </script>
+
+        <canvas id="canvas" class="page-canvas"></canvas>
+
+        {{template "header" .}}
+
+        <div class="center-wrap">
+
+            <div class="card">
+                <h1 class="title">Level {level}</h1>
+
+                <div class="toggle-wrapper">
+                    <p class="toggle-label">Cryptic</p>
+                    <label class="switch">
+                        <input id="leveltype" type="checkbox" oninput="OnLevelTypeChange(event)">
+                        <span class="slider"></span>
+                    </label>
+                    <p class="toggle-label">CTF</p>
+                </div>
+
+                <div class="markup-wrap">
+                    <span id="markup" class="markup"></span>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-area">
+                        <input required placeholder="Enter your answer" type="text" id="messageInput" class="answer-input" />
+
+                        <button id="sendButton" class="send-button" onclick="submit()">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 664 663" class="send-icon">
+                                <path stroke-linejoin="round" stroke-linecap="round" stroke-width="33.67" stroke="currentColor" d="M646.293 331.888L17.7538 17.6187L155.245 331.888M646.293 331.888L17.753 646.157L155.245 331.888M646.293 331.888L318.735 330.228L155.245 331.888"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{template "footer" .}}
+
+    <script>
+        var markupHTML = `{markup}`
+    </script>
+    <script defer type="module" src="play/play.js"></script>
+
+    {chat_btn}
+
 </body>
 
 </html>
