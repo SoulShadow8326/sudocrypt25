@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function(){
     var container = document.querySelector('.countdown-container')
     if (!container) return
     var ds = container.getAttribute('data-start')
-    var fallback = '2025-11-07T09:00:00+05:30'
+    var fallback = '2025-11-06T09:00:00+05:30'
     var countDown = new Date(ds || fallback).getTime()
     function setText(id, text) {
         var el = document.getElementById(id)
