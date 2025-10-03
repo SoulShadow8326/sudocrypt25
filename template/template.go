@@ -16,6 +16,7 @@ type TemplateData struct {
 	User            map[string]interface{}
 	TimeGateStart   string
 	IsAuthenticated bool
+	LeaderboardHTML template.HTML
 }
 
 func InitTemplates() error {

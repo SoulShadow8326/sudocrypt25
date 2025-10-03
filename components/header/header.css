@@ -263,6 +263,7 @@
         border: none;
 		transition: transform 0.15s cubic-bezier(.17,.67,.83,.67), box-shadow 0.15s cubic-bezier(.17,.67,.83,.67);
 		cursor: pointer;
+		font-family: Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 .auth_btn:hover {
 	transform: scale(1.05);

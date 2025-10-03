@@ -1,0 +1,26 @@
+:root{
+    --background: #0f1115;
+    --card-bg: rgba(255,255,255,0.03);
+    --card-border: rgba(255,255,255,0.15);
+    --text: #ffffff;
+}
+html,body{ height:100%; margin:0; font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Arial; background:var(--background); color:var(--text); }
+
+.leaderboard-container{ padding:28px 16px; max-width:1100px; margin:0 auto; display:flex; flex-direction:column; gap:12px; align-items:center; height: 65% !important;}
+.leaderboard-title{ font-size:3rem; font-weight:700; margin:0 0 8px 0; }
+.leaderboard-header{ width:100%; display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-radius:12px; background:transparent; font-weight:600; }
+.leaderboard-columns{ display:flex; gap:16px; align-items:center; }
+.rank-label{ width:56px; text-align:right; font-size:0.95rem; }
+.name-label{ flex:1; font-size:0.95rem; text-align:left; }
+.points-col{ width:64px; text-align:left; }
+.leaderboard-list{ width:100%; display:flex; flex-direction:column; gap:10px; margin-top:8px; }
+.leaderboard-item{ display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-radius:12px; border:1px solid var(--card-border); background: rgba(255,255,255,0.01); cursor:pointer; }
+.leaderboard-item .left{ display:flex; gap:16px; align-items:center; }
+.leaderboard-item .rank{ width:56px; text-align:right; }
+.leaderboard-item .name{ flex:1; text-align:left; }
+.leaderboard-item .points{ width:64px; text-align:left; }
+
+@media (min-width: 768px){
+    .leaderboard-container{ padding:32px 40px; }
+    .leaderboard-title{ font-size:2rem; }
+}

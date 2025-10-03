@@ -85,6 +85,7 @@ body {
 .auth-help {
 	font-size: 0.875rem;
 	color: rgba(255, 255, 255, 0.9);
+	font-family: Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
 .auth-help:hover {
@@ -318,6 +319,7 @@ body {
 	background: var(--primary);
 	color: #fff;
 	box-shadow: 0 6px 14px rgba(0,0,0,0.28);
+	font-family: Montserrat, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
 .primary-button:hover {

@@ -4,8 +4,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
+	"os"
 	"sort"
+	"strings"
 	"time"
 
 	dbpkg "sudocrypt25/db"
@@ -54,4 +57,44 @@ func ProcessLeaderboard(dbConn *sql.DB) error {
 		fmt.Printf("%d. %s (%s) - %d points\n", i+1, e.Name, e.Email, e.Points)
 	}
 	return nil
+}
+
+func GenerateLeaderboardHTML(dbConn *sql.DB) (string, error) {
+	data, err := dbpkg.GetAll(dbConn, "leaderboard")
+	if err != nil {
+		return "", err
+	}
+	entries := []leaderboard{}
+	for _, v := range data {
+		var e leaderboard
+		if err := json.Unmarshal([]byte(v), &e); err != nil {
+			continue
+		}
+		entries = append(entries, e)
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		if entries[i].Points == entries[j].Points {
+			return entries[i].Time < entries[j].Time
+		}
+		return entries[i].Points > entries[j].Points
+	})
+
+	cardBytes, err := os.ReadFile("components/leaderboard/card.html")
+	if err != nil {
+		return "", err
+	}
+	cardTpl := string(cardBytes)
+	var sb strings.Builder
+	for i, e := range entries {
+		rank := fmt.Sprintf("%d", i+1)
+		level := fmt.Sprintf("%d", e.Points)
+		emailText := ""
+		item := cardTpl
+		item = strings.ReplaceAll(item, "{rank}", rank)
+		item = strings.ReplaceAll(item, "{name}", template.HTMLEscapeString(e.Name))
+		item = strings.ReplaceAll(item, "{level}", level)
+		item = strings.ReplaceAll(item, "{email_text}", emailText)
+		sb.WriteString(item)
+	}
+	return sb.String(), nil
 }

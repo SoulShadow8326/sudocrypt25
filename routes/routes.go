@@ -3,6 +3,7 @@ package routes
 import (
 	"database/sql"
 	"fmt"
+	htmltmpl "html/template"
 	"net/http"
 	"os"
 	"time"
@@ -113,6 +114,9 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 			}
 		}
 		td := template.TemplateData{PageTitle: "Leaderboard", CurrentPath: r.URL.Path, IsAuthenticated: auth}
+		if html, err := handlers.GenerateLeaderboardHTML(dbConn); err == nil {
+			td.LeaderboardHTML = htmltmpl.HTML(html)
+		}
 		if err := template.RenderTemplate(w, "leaderboard", td); err != nil {
 			http.ServeFile(w, r, "components/leaderboard/leaderboard.html")
 		}

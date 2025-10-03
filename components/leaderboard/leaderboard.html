@@ -16,7 +16,7 @@
 
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap">
-    <link rel="stylesheet" href="/components/play/play.css">
+    <link rel="stylesheet" href="/components/leaderboard/leaderboard.css">
     <link rel="stylesheet" href="/components/main.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"
@@ -30,10 +30,37 @@
 </head>
 
 <body>
-    {{template "header" .}}
-        <div style="height: 42vw;"></div>
-    {{template "footer" .}}
+    <div>
+        {{template "header" .}}
+        <div class="leaderboard-container" style="min-height: 37vw;">
+            <h1 class="leaderboard-title">Leaderboard</h1>
+            <div class="leaderboard-header">
+                <div class="leaderboard-columns">
+                    <p class="rank-label">Rank</p>
+                    <p class="name-label">Name</p>
+                </div>
+                <div class="points-col">
+                    <p class="points-label">Points</p>
+                </div>
+            </div>
+            <div class="leaderboard-list">{{.LeaderboardHTML}}</div>
+        </div>
+        {{template "footer" .}}
+    </div>
 </body>
+
+<script>
+    function dialog(id, selected, state, name) {
+        let modal = document.getElementById(`dialog_${selected}_${id}`);
+        if (state == "open") {
+            document.getElementById("dialog_pfp_"+String(id)).src="https://api.dicebear.com/9.x/big-smile/svg?seed="+name
+            modal.showModal();
+        }
+        if (state == "close") {
+            modal.close();
+        }
+    }
+</script>
 
 </html>
 {{end}}
