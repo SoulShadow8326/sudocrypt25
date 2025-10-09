@@ -17,6 +17,8 @@ type TemplateData struct {
 	TimeGateStart   string
 	IsAuthenticated bool
 	LeaderboardHTML template.HTML
+	LevelsHTML      template.HTML
+	LevelsData      template.JS
 }
 
 func InitTemplates() error {

@@ -1,0 +1,251 @@
+:root {
+	--background: #0f1115;
+	--card-bg: rgba(255,255,255,0.03);
+	--card-border: rgba(255,255,255,0.15);
+	--primary: #c7110d;
+	--text: #ffffff;
+}
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+	font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+	background: var(--background);
+	color: var(--text);
+}
+
+.admin-page {
+	box-sizing: border-box;
+}
+
+.levels-wrap {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	padding: 16px;
+	align-items: flex-start;
+	justify-content: center;
+}
+
+.levels-heading {
+	width: 100%;
+	font-size: 2rem;
+	font-weight: 700;
+	margin: 8px 0;
+	padding-left: 4px;
+	text-align: center;
+}
+
+.level-item {
+	width: 220px;
+	background: #0d0e11;
+	border: 1px solid #3f4044;
+	color: var(--text);
+	border-radius: 10px;
+	padding: 14px 16px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	transition: transform 160ms ease, box-shadow 160ms ease;
+	box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+}
+
+.level-id {
+	font-weight: 700;
+}
+
+.level-source, .level-answer {
+	color: rgba(255,255,255,0.85);
+	font-size: 0.95rem;
+	margin: 0;
+}
+
+.level-item:hover {
+	transform: translateY(-4px);
+	box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+}
+
+.level-id {
+	font-weight: 700;
+	color: #fff;
+	background: rgba(0,0,0,0.12);
+	padding: 6px 8px;
+	border-radius: 6px;
+	display: inline-block;
+}
+
+.level-add {
+	width: 56px;
+	height: 56px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--primary);
+	color: #fff;
+	border-radius: 12px;
+	cursor: pointer;
+	position: fixed;
+	right: 24px;
+	bottom: 24px;
+	z-index: 1200;
+	box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+	transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.level-add p{ margin:0; font-size:20px; line-height:1 }
+
+.level-add:hover{ transform: translateY(-4px); box-shadow: 0 18px 40px rgba(0,0,0,0.55); }
+
+.popup-container {
+	position: fixed;
+	left: 0;
+	top: 0;
+	width: 100%;
+	height: 100%;
+	z-index: 1000;
+	padding: 28px;
+	box-sizing: border-box;
+	background: rgba(13,14,17,0.75);
+	backdrop-filter: blur(6px);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.popup-container.hidden {
+	display: none;
+}
+
+.popup-content {
+	width: 100%;
+	height: 100%;
+	background: var(--card-bg);
+	border: 1px solid var(--card-border);
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+	padding: 16px;
+	border-radius: 12px;
+	box-sizing: border-box;
+	color: var(--text);
+}
+
+.popup-body {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	align-items: center;
+    font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+}
+
+.level-title {
+	font-size: 1.25rem;
+	font-weight: 600;
+	margin: 0;
+}
+
+.popup-main {
+	display: flex;
+	gap: 12px;
+	width: 100%;
+}
+
+.display-box {
+	flex: 1;
+	height: 50vh;
+	border-radius: 8px;
+	overflow: hidden;
+	border: 1px solid var(--card-border);
+	background: var(--background);
+	padding: 12px;
+	box-sizing: border-box;
+    font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+}
+
+.editor-box {
+	flex: 1;
+	height: 50vh;
+	border-radius: 8px;
+}
+
+.editor-box textarea {
+	width: 100%;
+	height: 100%;
+	padding: 10px;
+	background: var(--background);
+	color: var(--text);
+	border-radius: 6px;
+	border: 1px solid var(--card-border);
+	box-sizing: border-box;
+	resize: none;
+	outline: none;
+}
+
+.form-row {
+	display: flex;
+	gap: 12px;
+	width: 100%;
+}
+
+.form-col {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.form-label {
+	color: rgba(255,255,255,0.7);
+	font-size: 12px;
+	margin: 0 0 0 4px;
+    font-weight: 600;
+    font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+}
+
+.form-input {
+	padding: 10px;
+	border-radius: 8px;
+	background: rgba(255,255,255,0.03);
+	color: var(--text);
+	border: 1px solid var(--card-border);
+	outline: none;
+    font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+}
+
+.popup-actions {
+	display: flex;
+	gap: 12px;
+	justify-content: center;
+	width: 50%;
+}
+
+.btn-primary {
+	background: var(--primary);
+	color: #fff;
+	padding: 10px 14px;
+	border-radius: 8px;
+	border: none;
+	cursor: pointer;
+	width: 100%;
+    font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+}
+
+.popup-close {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	background: transparent;
+	border: none;
+	color: #fff;
+	cursor: pointer;
+}
+
+@media (min-width: 1024px) {
+	.popup-content {
+		max-width: 1100px;
+		max-height: 80vh;
+	}
+}

@@ -121,4 +121,28 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 			http.ServeFile(w, r, "components/leaderboard/leaderboard.html")
 		}
 	})
+	http.HandleFunc("/set_level", handlers.SetLevelHandler(dbConn))
+	http.HandleFunc("/delete_level", handlers.DeleteLevelHandler(dbConn))
+	http.HandleFunc("/submit", handlers.SubmitHandler(dbConn))
+	http.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Redirect(w, r, "/auth?toast=1&from=/admin", http.StatusFound)
+			return
+		}
+		auth := true
+		c2, err := r.Cookie("email")
+		if err != nil || c2.Value == "" || admins == nil || !admins.IsAdmin(c2.Value) {
+			http.Redirect(w, r, "/timegate?toast=1&from=/admin", http.StatusFound)
+			return
+		}
+		td := template.TemplateData{PageTitle: "Admin", CurrentPath: r.URL.Path, IsAuthenticated: auth}
+		if html, js, err := handlers.GenerateAdminLevelsHTML(dbConn); err == nil {
+			td.LevelsHTML = htmltmpl.HTML(html)
+			td.LevelsData = htmltmpl.JS(js)
+		}
+		if err := template.RenderTemplate(w, "admin", td); err != nil {
+			http.ServeFile(w, r, "components/admin/admin.html")
+		}
+	})
 }

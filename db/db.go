@@ -27,6 +27,11 @@ CREATE TABLE IF NOT EXISTS leaderboard (
 	data TEXT,
 	created_at INTEGER
 );
+CREATE TABLE IF NOT EXISTS levels (
+    id TEXT PRIMARY KEY,
+    data TEXT,
+    created_at INTEGER
+);
 
 `
 	_, err := d.Exec(schema)
@@ -48,6 +53,9 @@ func Set(d *sql.DB, namespace, key, value string) error {
 	case "leaderboard":
 		_, err := d.Exec(`INSERT OR REPLACE INTO leaderboard(email, data, created_at) VALUES(?,?,?)`, key, value, now)
 		return err
+	case "levels":
+		_, err := d.Exec(`INSERT OR REPLACE INTO levels(id, data, created_at) VALUES(?,?,?)`, key, value, now)
+		return err
 	default:
 		_, err := d.Exec(`INSERT OR REPLACE INTO users(email, data, created_at) VALUES(?,?,?)`, key, value, now)
 		return err
@@ -65,6 +73,8 @@ func Get(d *sql.DB, namespace, key string) (string, error) {
 		query = `SELECT created_at FROM emails WHERE email = ?`
 	case "leaderboard":
 		query = `SELECT data FROM leaderboard WHERE email = ?`
+	case "levels":
+		query = `SELECT data FROM levels WHERE id = ?`
 	default:
 		query = `SELECT data FROM users WHERE email = ?`
 	}
@@ -108,6 +118,9 @@ func Delete(d *sql.DB, namespace, key string) error {
 	case "leaderboard":
 		_, err := d.Exec(`DELETE FROM leaderboard WHERE email = ?`, key)
 		return err
+	case "levels":
+		_, err := d.Exec(`DELETE FROM levels WHERE id = ?`, key)
+		return err
 	default:
 		_, err := d.Exec(`DELETE FROM users WHERE email = ?`, key)
 		return err
@@ -128,6 +141,8 @@ func GetAll(d *sql.DB, namespace string) (map[string]string, error) {
 		rows, err = d.Query(`SELECT email, created_at FROM emails`)
 	case "leaderboard":
 		rows, err = d.Query(`SELECT email, data FROM leaderboard`)
+	case "levels":
+		rows, err = d.Query(`SELECT id, data FROM levels`)
 	default:
 		return res, nil
 	}

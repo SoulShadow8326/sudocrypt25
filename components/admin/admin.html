@@ -1,0 +1,113 @@
+{{define "admin"}}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="assets/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#131520" />
+    <meta name="description" content="Website for Exun Sudocrypt 2024" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <title>Sudocrypt | Admin</title>
+
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap">
+    <link rel="stylesheet" href="/components/admin/admin.css">
+    <link rel="stylesheet" href="/components/main.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"
+        integrity="sha512-LhccdVNGe2QMEfI3x4DVV3ckMRe36TfydKss6mJpdHjNFiV07dFpS2xzeZedptKZrwxfICJpez09iNioiSZ3hA=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <style>
+        #displayBox a {
+            color: var(--primary);
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="admin-page">
+        {{template "header" .}}
+
+        <div class="levels-wrap" style="min-height: 70%;">
+            {{.LevelsHTML}}
+
+            <div class="level-add" onclick="openPopup(-1)">
+                <p>+</p>
+            </div>
+        </div>
+
+        <div id="popupContainer" class="popup-container hidden">
+
+            <div id="popupContent" class="popup-content">
+
+                <div class="popup-body">
+                    <p id="level_id" class="level-title">Level 0</p>
+
+                    <div class="popup-main">
+                        <div class="display-box">
+                            <div id="displayBox"></div>
+                        </div>
+                        <div class="editor-box">
+                            <textarea id="inputField" placeholder="Enter Markdown or URL" style="font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-col">
+                            <p class="form-label">Source Hint</p>
+                            <input type="text" id="sourceHintField" class="form-input" placeholder="Source Hint">
+                        </div>
+
+                        <div class="form-col">
+                            <p class="form-label">Answer</p>
+                            <input type="text" id="answerField" class="form-input" placeholder="Answer">
+                        </div>
+
+                        <div class="form-col">
+                            <p class="form-label">Level Id</p>
+                            <input type="text" id="levelId" class="form-input" placeholder="Level Id">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="popup-actions">
+                    <button class="btn-primary" onclick="submitForm()">Submit</button>
+                    <button class="btn-primary" onclick="deleteLevel()">Delete</button>
+                    <button class="btn-primary" onclick="closePopup()">Cancel</button>
+                </div>
+
+                <button class="popup-close" onclick="closePopup()">
+                    <svg width="26" height="26" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14 2L2 14" stroke="white" stroke-width="2" stroke-linecap="square" stroke-linejoin="round" />
+                        <path d="M2 2L14 14" stroke="white" stroke-width="2" stroke-linecap="square" stroke-linejoin="round" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        {{template "footer" .}}
+    </div>
+
+    <script id="levels-data" type="application/json">{{.LevelsData}}</script>
+    <script>
+        var levelsData = {};
+        try {
+            var el = document.getElementById('levels-data');
+            levelsData = JSON.parse(el ? el.textContent || '{}' : '{}');
+        } catch (e) {
+            console.error('Failed to parse levelsData', e);
+            levelsData = {};
+        }
+    </script>
+    <script defer src="components/admin/admin.js"></script>
+
+</body>
+
+</html>
+{{end}}
