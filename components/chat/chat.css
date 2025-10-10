@@ -507,6 +507,7 @@
     
     .chat-messages-container {
         padding: 10px;
+		font-family: Montserrat;
     }
     
     #messagecontainer {
