@@ -19,6 +19,7 @@ type TemplateData struct {
 	LeaderboardHTML template.HTML
 	LevelsHTML      template.HTML
 	LevelsData      template.JS
+	LevelNum        string
 }
 
 func InitTemplates() error {

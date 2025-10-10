@@ -260,3 +260,68 @@ func SubmitHandler(dbConn *sql.DB) http.HandlerFunc {
 		json.NewEncoder(w).Encode(map[string]bool{"success": false})
 	}
 }
+
+func LevelsListHandler(dbConn *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		levels, err := GetAllLevels(dbConn)
+		if err != nil {
+			http.Error(w, "db error", http.StatusInternalServerError)
+			return
+		}
+		ids := make([]string, 0, len(levels))
+		for id := range levels {
+			ids = append(ids, id)
+		}
+		sort.Strings(ids)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(ids)
+	}
+}
+
+func CurrentLevelHandler(dbConn *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Error(w, "unauthenticated", http.StatusUnauthorized)
+			return
+		}
+		emailC, err := r.Cookie("email")
+		if err != nil || emailC.Value == "" {
+			http.Error(w, "unauthenticated", http.StatusUnauthorized)
+			return
+		}
+		email := emailC.Value
+
+		acctRaw, err := dbpkg.Get(dbConn, "accounts", email)
+		var acct map[string]interface{}
+		if err == nil {
+			json.Unmarshal([]byte(acctRaw), &acct)
+		} else {
+			acct = map[string]interface{}{"levels": map[string]float64{"cryptic": 0, "ctf": 0}}
+		}
+
+		typ := r.URL.Query().Get("type")
+		if typ == "" {
+			typ = "cryptic"
+		}
+
+		levelsMap := map[string]float64{}
+		if lm, ok := acct["levels"].(map[string]interface{}); ok {
+			for k, v := range lm {
+				if vf, ok := v.(float64); ok {
+					levelsMap[k] = vf
+				}
+			}
+		}
+		curr := int(levelsMap[typ])
+		levelID := fmt.Sprintf("%s-%d", typ, curr)
+		lvl, err := GetLevel(dbConn, levelID)
+		if err != nil {
+			http.Error(w, "level not found", http.StatusNotFound)
+			return
+		}
+		lvl.Answer = ""
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(lvl)
+	}
+}

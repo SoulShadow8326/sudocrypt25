@@ -2,12 +2,14 @@ package routes
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	htmltmpl "html/template"
 	"net/http"
 	"os"
 	"time"
 
+	dbpkg "sudocrypt25/db"
 	"sudocrypt25/handlers"
 	"sudocrypt25/template"
 )
@@ -95,6 +97,26 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 			}
 		}
 		td := template.TemplateData{PageTitle: "Play", CurrentPath: r.URL.Path, IsAuthenticated: auth}
+		if c2, err := r.Cookie("email"); err == nil && c2.Value != "" {
+			email := c2.Value
+			acctRaw, err := dbpkg.Get(dbConn, "accounts", email)
+			if err == nil {
+				var acct map[string]interface{}
+				if err := json.Unmarshal([]byte(acctRaw), &acct); err == nil {
+					typ := r.URL.Query().Get("type")
+					if typ == "" {
+						typ = "cryptic"
+					}
+					curr := 0
+					if lm, ok := acct["levels"].(map[string]interface{}); ok {
+						if v, ok := lm[typ].(float64); ok {
+							curr = int(v)
+						}
+					}
+					td.LevelNum = fmt.Sprintf("%d", curr)
+				}
+			}
+		}
 		if err := template.RenderTemplate(w, "play", td); err != nil {
 			http.ServeFile(w, r, "components/play/play.html")
 		}
@@ -124,6 +146,9 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	http.HandleFunc("/set_level", handlers.SetLevelHandler(dbConn))
 	http.HandleFunc("/delete_level", handlers.DeleteLevelHandler(dbConn))
 	http.HandleFunc("/submit", handlers.SubmitHandler(dbConn))
+	http.HandleFunc("/api/play/current", handlers.CurrentLevelHandler(dbConn))
+	http.HandleFunc("/api/leaderboard", handlers.LeaderboardAPIHandler(dbConn))
+	http.HandleFunc("/api/levels", handlers.LevelsListHandler(dbConn))
 	http.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("session_id")
 		if err != nil || c.Value == "" {

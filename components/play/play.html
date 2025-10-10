@@ -12,7 +12,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <title>Sudocrypt | Level {level}</title>
+    <title>Sudocrypt | Level {{.LevelNum}}</title>
 
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap">
@@ -31,8 +31,7 @@
 
 <body>
 
-    <script hint="{sourcehint}">
-        console.log("{sourcehint}")
+    <script>
         function OnLevelTypeChange(event) {
             if (event.target.checked) {
                 window.location="/play?type=ctf"
@@ -43,7 +42,7 @@
         setTimeout(()=>{
             var levelType=new URLSearchParams((new URL(window.location.href)).search).get("type")
             if (levelType=="ctf") {
-                document.getElementById("leveltype").checked=true
+                var el = document.getElementById("leveltype"); if (el) el.checked=true
             }
         }, 100)
     </script>
@@ -59,7 +58,7 @@
         <div class="center-wrap">
 
             <div class="card">
-                <h1 class="title">Level {level}</h1>
+                <h1 id="level_title" class="title">Level {{.LevelNum}}</h1>
 
                 <div class="toggle-wrapper">
                     <p class="toggle-label">Cryptic</p>
@@ -91,9 +90,9 @@
         {{template "footer" .}}
 
     <script>
-        var markupHTML = `{markup}`
+        var markupHTML = ``
     </script>
-    <script defer type="module" src="play/play.js"></script>
+    <script defer type="module" src="/components/play/play.js"></script>
 
     {{template "chat" .}}
 

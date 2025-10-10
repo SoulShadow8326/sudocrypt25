@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"net/http"
 	"os"
 	"sort"
 	"strings"
@@ -97,4 +98,61 @@ func GenerateLeaderboardHTML(dbConn *sql.DB) (string, error) {
 		sb.WriteString(item)
 	}
 	return sb.String(), nil
+}
+
+func LeaderboardAPIHandler(dbConn *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		sortBy := q.Get("sort")
+		order := strings.ToLower(q.Get("order"))
+		if order != "asc" && order != "desc" {
+			order = "desc"
+		}
+
+		data, err := dbpkg.GetAll(dbConn, "leaderboard")
+		if err != nil {
+			http.Error(w, "db error", http.StatusInternalServerError)
+			return
+		}
+		entries := []leaderboard{}
+		for _, v := range data {
+			var e leaderboard
+			if err := json.Unmarshal([]byte(v), &e); err != nil {
+				continue
+			}
+			entries = append(entries, e)
+		}
+
+		cmp := func(i, j int) bool {
+			switch sortBy {
+			case "time":
+				if entries[i].Time == entries[j].Time {
+					return entries[i].Points > entries[j].Points
+				}
+				if order == "asc" {
+					return entries[i].Time < entries[j].Time
+				}
+				return entries[i].Time > entries[j].Time
+			case "user":
+				if order == "asc" {
+					return strings.ToLower(entries[i].Name) < strings.ToLower(entries[j].Name)
+				}
+				return strings.ToLower(entries[i].Name) > strings.ToLower(entries[j].Name)
+			default: // points
+				if entries[i].Points == entries[j].Points {
+					if order == "asc" {
+						return entries[i].Time < entries[j].Time
+					}
+					return entries[i].Time > entries[j].Time
+				}
+				if order == "asc" {
+					return entries[i].Points < entries[j].Points
+				}
+				return entries[i].Points > entries[j].Points
+			}
+		}
+		sort.Slice(entries, cmp)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(entries)
+	}
 }

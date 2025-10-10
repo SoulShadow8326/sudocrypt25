@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -31,6 +32,31 @@ CREATE TABLE IF NOT EXISTS levels (
     id TEXT PRIMARY KEY,
     data TEXT,
     created_at INTEGER
+);
+CREATE TABLE IF NOT EXISTS user_levels (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	email TEXT,
+	type TEXT,
+	level INTEGER,
+	advanced_at INTEGER
+);
+CREATE TABLE IF NOT EXISTS messages (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	from_email TEXT,
+	to_email TEXT,
+	level_id TEXT,
+	type TEXT,
+	content TEXT,
+	created_at INTEGER,
+	read INTEGER DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS logs (
+	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	namespace TEXT,
+	key TEXT,
+	event TEXT,
+	data TEXT,
+	created_at INTEGER
 );
 
 `
@@ -175,4 +201,65 @@ func GetAll(d *sql.DB, namespace string) (map[string]string, error) {
 		}
 	}
 	return res, nil
+}
+
+func Log(d *sql.DB, namespace, key, event, data string) error {
+	now := time.Now().Unix()
+	_, err := d.Exec(`INSERT INTO logs(namespace, key, event, data, created_at) VALUES(?,?,?,?,?)`, namespace, key, event, data, now)
+	return err
+}
+
+func AddMessage(d *sql.DB, fromEmail, toEmail, levelID, mtype, content string) error {
+	now := time.Now().Unix()
+	_, err := d.Exec(`INSERT INTO messages(from_email, to_email, level_id, type, content, created_at, read) VALUES(?,?,?,?,?,?,?)`, fromEmail, toEmail, levelID, mtype, content, now, 0)
+	return err
+}
+
+func GetMessages(d *sql.DB, email string) (map[string]string, error) {
+	res := map[string]string{}
+	rows, err := d.Query(`SELECT id, from_email, to_email, level_id, type, content, created_at, read FROM messages WHERE from_email = ? OR to_email = ? ORDER BY created_at ASC`, email, email)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int
+		var from, to, levelID, mtype, content sql.NullString
+		var createdAt sql.NullInt64
+		var read sql.NullInt64
+		if err := rows.Scan(&id, &from, &to, &levelID, &mtype, &content, &createdAt, &read); err != nil {
+			return nil, err
+		}
+		key := fmt.Sprintf("%d", id)
+		val := fmt.Sprintf(`{"id":%d,"from":"%s","to":"%s","level_id":"%s","type":"%s","content":"%s","created_at":%d,"read":%d}`,
+			id,
+			escapeStringNull(from),
+			escapeStringNull(to),
+			escapeStringNull(levelID),
+			escapeStringNull(mtype),
+			escapeStringNull(content),
+			createdAt.Int64,
+			read.Int64,
+		)
+		res[key] = val
+	}
+	return res, nil
+}
+
+func AddUserLevel(d *sql.DB, email, typ string, level int, ts int64) error {
+	if ts == 0 {
+		ts = time.Now().Unix()
+	}
+	_, err := d.Exec(`INSERT INTO user_levels(email, type, level, advanced_at) VALUES(?,?,?,?)`, email, typ, level, ts)
+	return err
+}
+
+// helper used above to safely read sql.NullString
+func escapeStringNull(ns sql.NullString) string {
+	if ns.Valid {
+		s := strings.ReplaceAll(ns.String, "\\", "\\\\")
+		s = strings.ReplaceAll(s, "\"", "\\\"")
+		return s
+	}
+	return ""
 }
