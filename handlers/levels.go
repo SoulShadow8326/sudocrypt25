@@ -207,6 +207,16 @@ func SubmitHandler(dbConn *sql.DB) http.HandlerFunc {
 			acct = map[string]interface{}{"levels": map[string]float64{"cryptic": 0, "ctf": 0}}
 		}
 		now := time.Now().Unix()
+		if dq, ok := acct["disqualified"].(bool); ok && dq {
+			http.Error(w, "disqualified", http.StatusForbidden)
+			return
+		}
+		if admin, _ := acct["admin"].(bool); !admin {
+			if os.Getenv("EVENT_ACTIVE") == "0" {
+				http.Error(w, "event not active", http.StatusForbidden)
+				return
+			}
+		}
 		if last, ok := acct["last_submit"].(float64); ok {
 			if now-int64(last) < 1 {
 				json.NewEncoder(w).Encode(map[string]bool{"success": false})
@@ -245,18 +255,35 @@ func SubmitHandler(dbConn *sql.DB) http.HandlerFunc {
 			if v, ok := levelsMap["ctf"]; ok {
 				total += int(v)
 			}
-			lb := map[string]interface{}{"email": email, "name": email, "points": total, "time": float64(now)}
+			name := email
+			if n, ok := acct["name"].(string); ok && n != "" {
+				name = n
+			}
+			lb := map[string]interface{}{"email": email, "name": name, "points": total, "time": float64(now)}
 			lbB, _ := json.Marshal(lb)
 			dbpkg.Set(dbConn, "leaderboard", email, string(lbB))
 
 			dbpkg.Delete(dbConn, "messages/"+email, typ)
 
-			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+			lval := fmt.Sprintf("submit|%s|%s|correct", typ, strings.TrimSpace(answer))
+			dbpkg.Set(dbConn, "logs", email, lval)
+
+			nextCurr := curr + 1
+			nextLevelID := fmt.Sprintf("%s-%d", typ, nextCurr)
+			nextLvl, _ := GetLevel(dbConn, nextLevelID)
+			if nextLvl != nil {
+				nextLvl.Answer = ""
+			}
+			resp := map[string]interface{}{"success": true, "next_level": nextLvl}
+			json.NewEncoder(w).Encode(resp)
 			return
 		}
 		acct["last_submit"] = float64(now)
 		b, _ := json.Marshal(acct)
 		dbpkg.Set(dbConn, "accounts", email, string(b))
+
+		lval := fmt.Sprintf("submit|%s|%s|incorrect", typ, strings.TrimSpace(answer))
+		dbpkg.Set(dbConn, "logs", email, lval)
 		json.NewEncoder(w).Encode(map[string]bool{"success": false})
 	}
 }
@@ -317,7 +344,10 @@ func CurrentLevelHandler(dbConn *sql.DB) http.HandlerFunc {
 		levelID := fmt.Sprintf("%s-%d", typ, curr)
 		lvl, err := GetLevel(dbConn, levelID)
 		if err != nil {
-			http.Error(w, "level not found", http.StatusNotFound)
+			placeholder := &Level{ID: "", Markup: "<p>No level available currently. Please check back later.</p>"}
+			placeholder.Answer = ""
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(placeholder)
 			return
 		}
 		lvl.Answer = ""

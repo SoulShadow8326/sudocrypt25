@@ -223,6 +223,9 @@ func ApiAuthHandler(dbConn *sql.DB) http.HandlerFunc {
 			rb, _ := json.Marshal(reg)
 			db.Set(dbConn, "registration", email, string(rb))
 			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+			lb := map[string]interface{}{"email": email, "time": float64(time.Now().Unix()), "points": 0, "name": name}
+			lbB, _ := json.Marshal(lb)
+			db.Set(dbConn, "leaderboard", email, string(lbB))
 			if pend, err := db.GetAll(dbConn, "pending_signup"); err == nil {
 				for k := range pend {
 					if k == email || strings.Contains(k, email) {

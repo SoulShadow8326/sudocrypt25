@@ -33,7 +33,7 @@ html,body{
 	justify-content:center;
 	align-items:center;
 	padding:40px 20px;
-	min-height: calc(100vh - 185px);
+	min-height: 80vh;
 }
 
 .card{
@@ -61,7 +61,7 @@ html,body{
 	align-items:center;
 	justify-content:center;
 	margin-top:20px;
-    padding-bottom: 10vw;
+    padding-bottom: 5vh;
 }
 
 .toggle-label{
@@ -114,6 +114,7 @@ html,body{
 	display:flex;
 	align-items:center;
 	justify-content:center;
+	padding-bottom: 4vh;
 }
 
 .markup{

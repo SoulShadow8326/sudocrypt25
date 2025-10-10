@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -23,22 +24,10 @@ CREATE TABLE IF NOT EXISTS emails (
 	email TEXT PRIMARY KEY,
 	created_at INTEGER
 );
-CREATE TABLE IF NOT EXISTS leaderboard (
-	email TEXT PRIMARY KEY,
-	data TEXT,
-	created_at INTEGER
-);
 CREATE TABLE IF NOT EXISTS levels (
     id TEXT PRIMARY KEY,
     data TEXT,
     created_at INTEGER
-);
-CREATE TABLE IF NOT EXISTS user_levels (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	email TEXT,
-	type TEXT,
-	level INTEGER,
-	advanced_at INTEGER
 );
 CREATE TABLE IF NOT EXISTS messages (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,10 +66,74 @@ func Set(d *sql.DB, namespace, key, value string) error {
 		_, err := d.Exec(`INSERT OR REPLACE INTO emails(email, created_at) VALUES(?,?)`, key, now)
 		return err
 	case "leaderboard":
-		_, err := d.Exec(`INSERT OR REPLACE INTO leaderboard(email, data, created_at) VALUES(?,?,?)`, key, value, now)
+		var lb map[string]interface{}
+		if err := json.Unmarshal([]byte(value), &lb); err != nil {
+			return err
+		}
+		var existing sql.NullString
+		if err := d.QueryRow(`SELECT data FROM users WHERE email = ?`, key).Scan(&existing); err != nil && err != sql.ErrNoRows {
+			return err
+		}
+		var user map[string]interface{}
+		if existing.Valid {
+			json.Unmarshal([]byte(existing.String), &user)
+		} else {
+			user = map[string]interface{}{"email": key}
+		}
+		if name, ok := lb["name"].(string); ok && name != "" {
+			user["name"] = name
+		}
+		if points, ok := lb["points"]; ok {
+			user["points"] = points
+		}
+		if t, ok := lb["time"]; ok {
+			user["time"] = t
+		}
+		ub, _ := json.Marshal(user)
+		_, err := d.Exec(`INSERT OR REPLACE INTO users(email, data, created_at) VALUES(?,?,?)`, key, string(ub), now)
 		return err
 	case "levels":
 		_, err := d.Exec(`INSERT OR REPLACE INTO levels(id, data, created_at) VALUES(?,?,?)`, key, value, now)
+		return err
+	case "logs":
+		parts := strings.SplitN(value, "|", 3)
+		ns := ""
+		ev := ""
+		dat := ""
+		if len(parts) > 0 {
+			ns = parts[0]
+		}
+		if len(parts) > 1 {
+			ev = parts[1]
+		}
+		if len(parts) > 2 {
+			dat = parts[2]
+		}
+		_, err := d.Exec(`INSERT INTO logs(namespace, key, event, data, created_at) VALUES(?,?,?,?,?)`, ns, key, ev, dat, now)
+		return err
+	case "messages":
+		parts := strings.SplitN(value, "|", 5)
+		from := ""
+		to := ""
+		levelID := ""
+		mtype := ""
+		content := ""
+		if len(parts) > 0 {
+			from = parts[0]
+		}
+		if len(parts) > 1 {
+			to = parts[1]
+		}
+		if len(parts) > 2 {
+			levelID = parts[2]
+		}
+		if len(parts) > 3 {
+			mtype = parts[3]
+		}
+		if len(parts) > 4 {
+			content = parts[4]
+		}
+		_, err := d.Exec(`INSERT INTO messages(from_email, to_email, level_id, type, content, created_at, read) VALUES(?,?,?,?,?,?,?)`, from, to, levelID, mtype, content, now, 0)
 		return err
 	default:
 		_, err := d.Exec(`INSERT OR REPLACE INTO users(email, data, created_at) VALUES(?,?,?)`, key, value, now)
@@ -98,7 +151,7 @@ func Get(d *sql.DB, namespace, key string) (string, error) {
 	case "emails":
 		query = `SELECT created_at FROM emails WHERE email = ?`
 	case "leaderboard":
-		query = `SELECT data FROM leaderboard WHERE email = ?`
+		query = `SELECT data FROM users WHERE email = ?`
 	case "levels":
 		query = `SELECT data FROM levels WHERE id = ?`
 	default:
@@ -131,6 +184,11 @@ func Get(d *sql.DB, namespace, key string) (string, error) {
 }
 
 func Delete(d *sql.DB, namespace, key string) error {
+	if strings.HasPrefix(namespace, "messages/") {
+		email := strings.TrimPrefix(namespace, "messages/")
+		_, err := d.Exec(`DELETE FROM messages WHERE (from_email = ? OR to_email = ?) AND type = ?`, email, email, key)
+		return err
+	}
 	switch namespace {
 	case "accounts", "registration", "users":
 		_, err := d.Exec(`DELETE FROM users WHERE email = ?`, key)
@@ -142,8 +200,20 @@ func Delete(d *sql.DB, namespace, key string) error {
 		_, err := d.Exec(`DELETE FROM emails WHERE email = ?`, key)
 		return err
 	case "leaderboard":
-		_, err := d.Exec(`DELETE FROM leaderboard WHERE email = ?`, key)
-		return err
+		var existing sql.NullString
+		if err := d.QueryRow(`SELECT data FROM users WHERE email = ?`, key).Scan(&existing); err != nil {
+			return err
+		}
+		if existing.Valid {
+			var user map[string]interface{}
+			json.Unmarshal([]byte(existing.String), &user)
+			delete(user, "points")
+			delete(user, "time")
+			ub, _ := json.Marshal(user)
+			_, err := d.Exec(`INSERT OR REPLACE INTO users(email, data, created_at) VALUES(?,?,?)`, key, string(ub), time.Now().Unix())
+			return err
+		}
+		return nil
 	case "levels":
 		_, err := d.Exec(`DELETE FROM levels WHERE id = ?`, key)
 		return err
@@ -166,9 +236,11 @@ func GetAll(d *sql.DB, namespace string) (map[string]string, error) {
 	case "emails":
 		rows, err = d.Query(`SELECT email, created_at FROM emails`)
 	case "leaderboard":
-		rows, err = d.Query(`SELECT email, data FROM leaderboard`)
+		rows, err = d.Query(`SELECT email, data FROM users`)
 	case "levels":
 		rows, err = d.Query(`SELECT id, data FROM levels`)
+	case "messages":
+		rows, err = d.Query(`SELECT id, from_email, to_email, level_id, type, content, created_at, read FROM messages ORDER BY created_at ASC`)
 	default:
 		return res, nil
 	}
@@ -179,7 +251,8 @@ func GetAll(d *sql.DB, namespace string) (map[string]string, error) {
 	for rows.Next() {
 		var k string
 		var v sql.NullString
-		if namespace == "emails" {
+		switch namespace {
+		case "emails":
 			var createdAt sql.NullInt64
 			if err := rows.Scan(&k, &createdAt); err != nil {
 				return nil, err
@@ -189,7 +262,65 @@ func GetAll(d *sql.DB, namespace string) (map[string]string, error) {
 			} else {
 				res[k] = ""
 			}
-		} else {
+		case "messages":
+			var id int
+			var from, to, levelID, mtype, content sql.NullString
+			var createdAt sql.NullInt64
+			var read sql.NullInt64
+			if err := rows.Scan(&id, &from, &to, &levelID, &mtype, &content, &createdAt, &read); err != nil {
+				return nil, err
+			}
+			key := fmt.Sprintf("%d", id)
+			msg := struct {
+				ID        int    `json:"id"`
+				From      string `json:"from"`
+				To        string `json:"to"`
+				LevelID   string `json:"level_id"`
+				Type      string `json:"type"`
+				Content   string `json:"content"`
+				CreatedAt int64  `json:"created_at"`
+				Read      int64  `json:"read"`
+			}{
+				ID: id,
+				From: func() string {
+					if from.Valid {
+						return from.String
+					}
+					return ""
+				}(),
+				To: func() string {
+					if to.Valid {
+						return to.String
+					}
+					return ""
+				}(),
+				LevelID: func() string {
+					if levelID.Valid {
+						return levelID.String
+					}
+					return ""
+				}(),
+				Type: func() string {
+					if mtype.Valid {
+						return mtype.String
+					}
+					return ""
+				}(),
+				Content: func() string {
+					if content.Valid {
+						return content.String
+					}
+					return ""
+				}(),
+				CreatedAt: createdAt.Int64,
+				Read:      read.Int64,
+			}
+			b, err := json.Marshal(msg)
+			if err != nil {
+				return nil, err
+			}
+			res[key] = string(b)
+		default:
 			if err := rows.Scan(&k, &v); err != nil {
 				return nil, err
 			}
@@ -201,65 +332,4 @@ func GetAll(d *sql.DB, namespace string) (map[string]string, error) {
 		}
 	}
 	return res, nil
-}
-
-func Log(d *sql.DB, namespace, key, event, data string) error {
-	now := time.Now().Unix()
-	_, err := d.Exec(`INSERT INTO logs(namespace, key, event, data, created_at) VALUES(?,?,?,?,?)`, namespace, key, event, data, now)
-	return err
-}
-
-func AddMessage(d *sql.DB, fromEmail, toEmail, levelID, mtype, content string) error {
-	now := time.Now().Unix()
-	_, err := d.Exec(`INSERT INTO messages(from_email, to_email, level_id, type, content, created_at, read) VALUES(?,?,?,?,?,?,?)`, fromEmail, toEmail, levelID, mtype, content, now, 0)
-	return err
-}
-
-func GetMessages(d *sql.DB, email string) (map[string]string, error) {
-	res := map[string]string{}
-	rows, err := d.Query(`SELECT id, from_email, to_email, level_id, type, content, created_at, read FROM messages WHERE from_email = ? OR to_email = ? ORDER BY created_at ASC`, email, email)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var id int
-		var from, to, levelID, mtype, content sql.NullString
-		var createdAt sql.NullInt64
-		var read sql.NullInt64
-		if err := rows.Scan(&id, &from, &to, &levelID, &mtype, &content, &createdAt, &read); err != nil {
-			return nil, err
-		}
-		key := fmt.Sprintf("%d", id)
-		val := fmt.Sprintf(`{"id":%d,"from":"%s","to":"%s","level_id":"%s","type":"%s","content":"%s","created_at":%d,"read":%d}`,
-			id,
-			escapeStringNull(from),
-			escapeStringNull(to),
-			escapeStringNull(levelID),
-			escapeStringNull(mtype),
-			escapeStringNull(content),
-			createdAt.Int64,
-			read.Int64,
-		)
-		res[key] = val
-	}
-	return res, nil
-}
-
-func AddUserLevel(d *sql.DB, email, typ string, level int, ts int64) error {
-	if ts == 0 {
-		ts = time.Now().Unix()
-	}
-	_, err := d.Exec(`INSERT INTO user_levels(email, type, level, advanced_at) VALUES(?,?,?,?)`, email, typ, level, ts)
-	return err
-}
-
-// helper used above to safely read sql.NullString
-func escapeStringNull(ns sql.NullString) string {
-	if ns.Valid {
-		s := strings.ReplaceAll(ns.String, "\\", "\\\\")
-		s = strings.ReplaceAll(s, "\"", "\\\"")
-		return s
-	}
-	return ""
 }

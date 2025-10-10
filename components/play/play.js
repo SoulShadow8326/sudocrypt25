@@ -99,3 +99,38 @@ window.addEventListener('load', initPlay);
 window.__fetchCurrentLevel = fetchCurrentLevel;
 window.__fetchLeaderboard = fetchLeaderboard;
 window.__renderMarkup = renderMarkup;
+
+async function submitAnswer() {
+    try {
+        const input = document.getElementById('messageInput');
+        if (!input) return;
+        const ans = input.value.trim();
+        if (ans === '') return;
+        const params = new URLSearchParams((new URL(window.location.href)).search);
+        const type = params.get('type') || 'cryptic';
+        const url = `/submit?answer=${encodeURIComponent(ans)}&type=${encodeURIComponent(type)}`;
+        const resp = await fetch(url, { credentials: 'same-origin' });
+        if (!resp.ok) {
+            const txt = await resp.text();
+            const n = new Notyf();
+            n.error('submit failed');
+            return;
+        }
+        const data = await resp.json();
+        const n = new Notyf();
+        if (data && data.success) {
+            n.success('Correct');
+            input.value = '';
+            const lvl = await fetchCurrentLevel();
+            if (lvl) renderMarkup(lvl.markup || markupHTML || '');
+            fetchLeaderboard();
+        } else {
+            n.error('Incorrect');
+        }
+    } catch (err) {
+        const n = new Notyf();
+        n.error('Error');
+    }
+}
+
+window.submit = submitAnswer;
