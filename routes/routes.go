@@ -99,6 +99,7 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 		td := template.TemplateData{PageTitle: "Play", CurrentPath: r.URL.Path, IsAuthenticated: auth}
 		if c2, err := r.Cookie("email"); err == nil && c2.Value != "" {
 			email := c2.Value
+			td.UserEmail = email
 			acctRaw, err := dbpkg.Get(dbConn, "accounts", email)
 			if err == nil {
 				var acct map[string]interface{}
@@ -149,6 +150,13 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	http.HandleFunc("/api/play/current", handlers.CurrentLevelHandler(dbConn))
 	http.HandleFunc("/api/leaderboard", handlers.LeaderboardAPIHandler(dbConn))
 	http.HandleFunc("/api/levels", handlers.LevelsListHandler(dbConn))
+	// messages APIs
+	http.HandleFunc("/api/messages", handlers.ListMessagesHandler(dbConn, admins))
+	http.HandleFunc("/api/message/send", func(w http.ResponseWriter, r *http.Request) {
+		handlers.SendMessageHandler(dbConn, admins)(w, r)
+	})
+	// logs API
+	http.HandleFunc("/api/logs", handlers.LogsHandler(dbConn, admins))
 	http.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("session_id")
 		if err != nil || c.Value == "" {
@@ -168,6 +176,28 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 		}
 		if err := template.RenderTemplate(w, "admin", td); err != nil {
 			http.ServeFile(w, r, "components/admin/admin.html")
+		}
+	})
+
+	// Admin chat page: render dedicated admin chat UI
+	http.HandleFunc("/admin/chat", func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Redirect(w, r, "/auth?toast=1&from=/admin/chat", http.StatusFound)
+			return
+		}
+		c2, err := r.Cookie("email")
+		if err != nil || c2.Value == "" || admins == nil || !admins.IsAdmin(c2.Value) {
+			http.Redirect(w, r, "/timegate?toast=1&from=/admin/chat", http.StatusFound)
+			return
+		}
+		em := ""
+		if c2 != nil {
+			em = c2.Value
+		}
+		td := template.TemplateData{PageTitle: "Admin Chat", CurrentPath: r.URL.Path, IsAuthenticated: true, UserEmail: em}
+		if err := template.RenderTemplate(w, "admin_chat", td); err != nil {
+			http.ServeFile(w, r, "components/admin/chat.html")
 		}
 	})
 }

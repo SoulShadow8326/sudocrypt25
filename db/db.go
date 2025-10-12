@@ -241,6 +241,8 @@ func GetAll(d *sql.DB, namespace string) (map[string]string, error) {
 		rows, err = d.Query(`SELECT id, data FROM levels`)
 	case "messages":
 		rows, err = d.Query(`SELECT id, from_email, to_email, level_id, type, content, created_at, read FROM messages ORDER BY created_at ASC`)
+	case "logs":
+		rows, err = d.Query(`SELECT id, namespace, key, event, data, created_at FROM logs ORDER BY created_at ASC`)
 	default:
 		return res, nil
 	}
@@ -320,6 +322,54 @@ func GetAll(d *sql.DB, namespace string) (map[string]string, error) {
 				return nil, err
 			}
 			res[key] = string(b)
+		case "logs":
+			var id int
+			var ns, keyCol, event, data sql.NullString
+			var createdAt sql.NullInt64
+			if err := rows.Scan(&id, &ns, &keyCol, &event, &data, &createdAt); err != nil {
+				return nil, err
+			}
+			keyLogs := fmt.Sprintf("%d", id)
+			entry := struct {
+				ID        int    `json:"id"`
+				Namespace string `json:"namespace"`
+				Key       string `json:"key"`
+				Event     string `json:"event"`
+				Data      string `json:"data"`
+				CreatedAt int64  `json:"created_at"`
+			}{
+				ID: id,
+				Namespace: func() string {
+					if ns.Valid {
+						return ns.String
+					}
+					return ""
+				}(),
+				Key: func() string {
+					if keyCol.Valid {
+						return keyCol.String
+					}
+					return ""
+				}(),
+				Event: func() string {
+					if event.Valid {
+						return event.String
+					}
+					return ""
+				}(),
+				Data: func() string {
+					if data.Valid {
+						return data.String
+					}
+					return ""
+				}(),
+				CreatedAt: createdAt.Int64,
+			}
+			b, err := json.Marshal(entry)
+			if err != nil {
+				return nil, err
+			}
+			res[keyLogs] = string(b)
 		default:
 			if err := rows.Scan(&k, &v); err != nil {
 				return nil, err

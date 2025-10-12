@@ -1,0 +1,41 @@
+{{define "admin_chat"}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sudocrypt | Admin Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/components/main.css">
+    <link rel="stylesheet" href="/components/admin/chat.css">
+</head>
+<body>
+    {{template "header" .}}
+    <div class="admin-chat-wrap">
+        <div class="admin-chat-sidebar">
+        <h2>Conversations</h2>
+        <div id="adminChatList" class="admin-chat-list"></div>
+        </div>
+        <div class="admin-chat-main">
+        <div id="adminChatHeader" class="admin-chat-header">Select a conversation</div>
+        <div id="adminChatMessages" class="admin-chat-messages"></div>
+        <div class="admin-chat-input">
+            <input type="text" id="adminChatInput" class="form-input" placeholder="Type a message..." />
+            <button id="adminChatSend" class="button">Send</button>
+        </div>
+        </div>
+    </div>
+    {{template "footer" .}}
+    <script>
+        (function(){
+        var el = document.currentScript;
+        try { window.__adminEmail = el.getAttribute('data-email') || ''; } catch(e) { window.__adminEmail=''; }
+        })();
+    </script>
+    <script defer type="module" src="/components/admin/chat.js" data-email='{{with .User}}{{index . "email"}}{{end}}'></script>
+</body>
+</html>
+{{end}}

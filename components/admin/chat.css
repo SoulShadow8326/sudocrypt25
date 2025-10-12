@@ -1,0 +1,133 @@
+:root {
+	--background: #0f1115;
+	--card-bg: rgba(255,255,255,0.03);
+	--card-border: rgba(255,255,255,0.15);
+	--primary: #c7110d;
+	--text: #ffffff;
+}
+
+html,
+body {
+	height: 100%;
+	margin: 0;
+	font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+	background: var(--background);
+	color: var(--text);
+}
+
+.admin-chat-wrap {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+}
+
+.admin-chat-sidebar {
+    width: 280px;
+    background: #171923;
+    border: 1px solid #2a2e3f;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.admin-chat-sidebar h2 {
+    margin: 0;
+    padding: 12px 16px;
+    border-bottom: 1px solid #2a2e3f;
+    font-size: 16px;
+}
+
+.admin-chat-list {
+    max-height: calc(100vh - 180px);
+    overflow: auto;
+}
+
+.admin-chat-item {
+    padding: 10px 16px;
+    border-bottom: 1px solid #2a2e3f;
+    cursor: pointer;
+}
+
+.admin-chat-item:hover {
+    background: #1d2030;
+}
+
+.admin-chat-item.active {
+    background: #22263a;
+}
+
+.admin-chat-main {
+    flex: 1;
+    background: #171923;
+    border: 1px solid #2a2e3f;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-chat-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #2a2e3f;
+    font-weight: 600;
+}
+
+.admin-chat-messages {
+    flex: 1;
+    overflow: auto;
+    padding: 16px;
+}
+
+.msg-row {
+    margin-bottom: 10px;
+}
+
+.msg-me {
+    text-align: right;
+}
+
+.msg-bubble {
+    display: inline-block;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: #262a3f;
+    max-width: 80%;
+}
+
+.msg-me .msg-bubble {
+    background: #c7110d;
+    color: white;
+}
+
+.msg-content {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.admin-chat-input {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid #2a2e3f;
+}
+
+.admin-chat-input input {
+    flex: 1;
+}
+.form-input {
+	padding: 10px;
+	border-radius: 8px;
+	background: rgba(255,255,255,0.03);
+	color: var(--text);
+	border: 1px solid var(--card-border);
+	outline: none;
+    font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+}
+.button {
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+}

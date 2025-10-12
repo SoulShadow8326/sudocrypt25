@@ -57,6 +57,9 @@ func UserFromContext(ctx context.Context) (map[string]interface{}, bool) {
 }
 
 func IsTimeGateOpen() bool {
+	if os.Getenv("DEV_BYPASS") == "1" {
+		return true
+	}
 	ds := os.Getenv("TIMEGATE_START")
 	if ds == "" {
 		ds = "2025-11-07T09:00:00+05:30"
