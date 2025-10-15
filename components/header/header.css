@@ -297,7 +297,7 @@
 	height: 100vh;
 	width: 320px;
 	max-width: 80vw;
-	background: rgba(10,10,10,0.96);
+	background: rgba(10,10,10);
 	transform: translateX(110%);
 	transition: transform 320ms ease;
 	z-index: 999;
