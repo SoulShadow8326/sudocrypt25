@@ -429,7 +429,7 @@
 .retry-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 6px 20px rgba(42, 119, 245, 0.4);
-    background: linear-gradient(135deg, #1e5cd1, #2a77f5);
+    background: linear-gradient(135deg, #1e5cd1, #2977f5);
 }
 
 .retry-btn:active {
@@ -954,7 +954,7 @@
 }
 
 .chat-message-text a {
-    color: #2a77f5;
+    color: #2977f5;
     text-decoration: none;
     border-bottom: 1px solid rgba(42, 119, 245, 0.3);
     transition: all 0.2s ease;
@@ -993,7 +993,7 @@
 
 
 .chat-message.admin .chat-message-label {
-    color: #2a77f5;
+    color: #2977f5;
     text-align: left;
 }
 
