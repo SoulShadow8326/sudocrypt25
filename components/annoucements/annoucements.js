@@ -6,6 +6,21 @@ const annTemplate = typeof announcement_Item !== 'undefined' ? announcement_Item
 function renderAnnouncement(a) {
     return annTemplate.replace('{time}', a.time || '').replace('{announcement}', (a.text || ''))
 }
+let lastAnnChecksum = ''
+async function fetchAnnouncementsChecksum() {
+    try {
+        const res = await fetch('/api/announcements', { credentials: 'same-origin' })
+        if (!res.ok) return null
+        const list = await res.json().catch(() => [])
+        if (!Array.isArray(list)) return null
+        const s = list.map(i => (i.id || '') + '|' + (i.text || '') + '|' + (i.time || '')).join('::')
+        let h = 0
+        for (let i = 0; i < s.length; i++) h = ((h << 5) - h) + s.charCodeAt(i) | 0
+        return String(h)
+    } catch (e) {
+        return null
+    }
+}
 async function loadAnnouncements() {
     if (!annContainer) return
     annContainer.innerHTML = ''
@@ -39,8 +54,27 @@ annToggle && annToggle.addEventListener('click', (e) => {
     annPopup.setAttribute('aria-hidden', (!open).toString())
     if (open) {
         annCircle && annCircle.classList.add('active')
+        annToggle && annToggle.classList.remove('notify')
         loadAnnouncements()
     } else {
         annCircle && annCircle.classList.remove('active')
     }
 })
+
+async function pollAnnouncements() {
+    try {
+        const cs = await fetchAnnouncementsChecksum()
+        if (cs && lastAnnChecksum && cs !== lastAnnChecksum) {
+            const isOpen = annPopup && annPopup.classList.contains('visible')
+            if (!isOpen) {
+                annToggle && annToggle.classList.add('notify')
+                annCircle && annCircle.classList.add('active')
+            }
+        }
+        if (cs) lastAnnChecksum = cs
+    } catch (e) {
+    }
+    setTimeout(pollAnnouncements, 15000)
+}
+
+pollAnnouncements()

@@ -53,10 +53,10 @@
 
         <canvas id="canvas" class="page-canvas"></canvas>
 
-        {{template "header" .}}
-
+    {{template "header" .}}
+    {{template "annoucements" .}}
         <div class="center-wrap">
-
+            
             <div class="card">
                 <h1 id="level_title" class="title">Level {{.LevelNum}}</h1>
 
@@ -86,7 +86,7 @@
                 </div>
             </div>
         </div>
-
+        
         {{template "footer" .}}
 
     <script>

@@ -42,6 +42,15 @@
             </div>
         </div>
 
+        <div class="announcements-admin" style="margin-top: 24px;">
+            <h2>Announcements</h2>
+            <div style="display:flex;gap:12px;align-items:center;">
+                <button class="btn-primary" id="addAnnouncementBtn">Add Announcement</button>
+            </div>
+            <div id="adminAnnouncementsList" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+            </div>
+        </div>
+
         <div id="popupContainer" class="popup-container hidden">
 
             <div id="popupContent" class="popup-content">
@@ -106,6 +115,135 @@
         }
     </script>
     <script defer src="components/admin/admin.js"></script>
+
+    <div id="annModal" class="popup-container hidden" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:1200;">
+        <div style="background:#0f1724;padding:18px;border-radius:8px;max-width:720px;width:100%;color:inherit;">
+            <h3 id="annModalTitle">New Announcement</h3>
+            <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+                <input id="annId" placeholder="id (optional)" style="padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:inherit" />
+                <textarea id="annContent" placeholder="Announcement content" rows="6" style="padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:inherit"></textarea>
+                <div style="display:flex;gap:8px;justify-content:flex-end;">
+                    <button class="btn-primary" id="annSaveBtn">Save</button>
+                    <button class="btn-primary" id="annCloseBtn">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    async function fetchAdminAnnouncements() {
+        try {
+            const res = await fetch('/api/announcements', { credentials: 'same-origin' })
+            if (!res.ok) return []
+            const list = await res.json().catch(() => [])
+            return Array.isArray(list) ? list : []
+        } catch (e) {
+            return []
+        }
+    }
+
+    function renderAdminAnnouncement(a) {
+        const time = a.time || ''
+        const txt = a.text || ''
+        const id = a.id || ''
+        const el = document.createElement('div')
+        el.style.padding = '8px'
+        el.style.borderRadius = '6px'
+        el.style.background = 'rgba(255,255,255,0.02)'
+        el.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><div style="flex:1"><div style="font-size:13px;color:rgba(255,255,255,0.9);margin-bottom:6px">${escapeHtml(txt)}</div><div style="font-size:12px;color:rgba(255,255,255,0.5)">${formatTime(time)}</div></div><div style="display:flex;flex-direction:column;gap:6px"><button class="btn-primary ann-edit" data-id="${escapeHtml(id)}">Edit</button><button class="btn-primary ann-delete" data-id="${escapeHtml(id)}" style="background:#444;padding:6px 8px">Delete</button></div></div>`
+        return el
+    }
+
+    function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c]})}
+
+    function formatTime(t){
+        if (!t) return ''
+        const n = Number(t)
+        if (Number.isNaN(n)) return String(t)
+        try { return new Date(n*1000).toLocaleString() } catch(e){ return String(t) }
+    }
+
+    async function reloadAdminAnnouncements() {
+        const list = await fetchAdminAnnouncements()
+        const container = document.getElementById('adminAnnouncementsList')
+        if (!container) return
+        container.innerHTML = ''
+        const filter = (document.getElementById('annSearch')||{}).value || ''
+        for (const item of list) {
+            if (filter && String(item.text||'').toLowerCase().indexOf(filter.toLowerCase()) === -1) continue
+            container.appendChild(renderAdminAnnouncement(item))
+        }
+    }
+
+    const _addAnnouncementBtn = document.getElementById('addAnnouncementBtn')
+    if (_addAnnouncementBtn) _addAnnouncementBtn.addEventListener('click', ()=>{
+        const idEl = document.getElementById('annId')
+        const contentEl = document.getElementById('annContent')
+        if (idEl) idEl.value = ''
+        if (contentEl) contentEl.value = ''
+        const titleEl = document.getElementById('annModalTitle')
+        if (titleEl) titleEl.innerText = 'New Announcement'
+        const m = document.getElementById('annModal')
+        if (m) m.style.display = 'flex'
+    })
+
+    const _annCloseBtn = document.getElementById('annCloseBtn')
+    if (_annCloseBtn) _annCloseBtn.addEventListener('click', ()=>{
+        const m = document.getElementById('annModal')
+        if (m) m.style.display = 'none'
+    })
+
+    const _annSaveBtn = document.getElementById('annSaveBtn')
+    if (_annSaveBtn) _annSaveBtn.addEventListener('click', ()=>{
+        const idEl = document.getElementById('annId')
+        const contentEl = document.getElementById('annContent')
+        const id = idEl ? idEl.value.trim() : ''
+        const content = contentEl ? contentEl.value.trim() : ''
+        if (!content) return
+        const form = document.getElementById('annCreateForm')
+        if (!form) return
+        if (form.elements['id']) form.elements['id'].value = id
+        if (form.elements['content']) form.elements['content'].value = content
+        form.submit()
+    })
+
+    async function handleEditDeleteClicks(e) {
+        const t = e.target
+            if (t.classList.contains('ann-edit')) {
+            const id = t.getAttribute('data-id')
+            const list = await fetchAdminAnnouncements()
+            const item = list.find(x => String(x.id) === String(id)) || {}
+            document.getElementById('annId').value = item.id || ''
+            document.getElementById('annContent').value = item.text || ''
+            document.getElementById('annModalTitle').innerText = 'Edit Announcement'
+            document.getElementById('annModal').style.display = 'flex'
+        } else if (t.classList.contains('ann-delete')) {
+            const id = t.getAttribute('data-id')
+            if (!id) return
+            const form = document.getElementById('annDeleteForm')
+            form.elements['id'].value = id
+            form.submit()
+        }
+    }
+
+    const _annSearch = document.getElementById('annSearch')
+    if (_annSearch) _annSearch.addEventListener('input', ()=>{ reloadAdminAnnouncements() })
+
+    window.addEventListener('load', ()=>{
+        reloadAdminAnnouncements()
+        const _adminList = document.getElementById('adminAnnouncementsList')
+        if (_adminList) _adminList.addEventListener('click', handleEditDeleteClicks)
+    })
+    </script>
+
+    <form id="annCreateForm" method="POST" action="/admin/announcement/create" style="display:none;">
+        <input type="hidden" name="id" />
+        <input type="hidden" name="content" />
+    </form>
+
+    <form id="annDeleteForm" method="POST" action="/admin/announcement/delete" style="display:none;">
+        <input type="hidden" name="id" />
+    </form>
 
 </body>
 

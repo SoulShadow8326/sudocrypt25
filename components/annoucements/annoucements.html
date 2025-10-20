@@ -1,4 +1,5 @@
 {{define "annoucements"}}
+{{if .ShowAnnouncements}}
 <div>
     <link rel="stylesheet" href="/components/annoucements/annoucements.css">
     <div id="announcementsToggleBtn" class="announcements-toggle" title="Notifications">
@@ -39,7 +40,32 @@ const announcement_Item = `
 </script>
 
 </script>
+</script>
+
+<script>
+function updateAnnouncementsTop() {
+    var header = document.querySelector('header') || document.getElementById('header') || document.querySelector('.header');
+    var top = 14;
+    if (header) {
+        var rect = header.getBoundingClientRect();
+        top = Math.ceil(rect.bottom + 2);
+    }
+    document.documentElement.style.setProperty('--announcements-top', top + 'px');
+}
+
+var resizeObserver = null;
+window.addEventListener('load', function() {
+    updateAnnouncementsTop();
+    window.addEventListener('resize', updateAnnouncementsTop);
+    var headerEl = document.querySelector('header') || document.getElementById('header') || document.querySelector('.header');
+    if (headerEl && 'ResizeObserver' in window) {
+        resizeObserver = new ResizeObserver(updateAnnouncementsTop);
+        resizeObserver.observe(headerEl);
+    }
+});
+</script>
 
 <script defer type="module" src="/components/annoucements/annoucements.js"></script>
 </div>
+{{end}}
 {{end}}

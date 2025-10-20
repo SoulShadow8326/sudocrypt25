@@ -58,5 +58,6 @@ func main() {
 		port = "8080"
 	}
 	log.Println("listening on :" + port)
+	log.Printf("http://localhost:%s\n", port)
 	log.Fatal(http.ListenAndServe(":"+port, nil))
 }

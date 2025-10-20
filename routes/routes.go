@@ -96,7 +96,7 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 				return
 			}
 		}
-		td := template.TemplateData{PageTitle: "Play", CurrentPath: r.URL.Path, IsAuthenticated: auth}
+		td := template.TemplateData{PageTitle: "Play", CurrentPath: r.URL.Path, IsAuthenticated: auth, ShowAnnouncements: true}
 		if c2, err := r.Cookie("email"); err == nil && c2.Value != "" {
 			email := c2.Value
 			td.UserEmail = email
@@ -150,6 +150,8 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	http.HandleFunc("/api/play/current", handlers.CurrentLevelHandler(dbConn))
 	http.HandleFunc("/api/leaderboard", handlers.LeaderboardAPIHandler(dbConn))
 	http.HandleFunc("/api/levels", handlers.LevelsListHandler(dbConn))
+	http.HandleFunc("/api/admin/announcements/set", handlers.SetAnnouncementHandler(dbConn, admins))
+	http.HandleFunc("/api/admin/announcements/delete", handlers.DeleteAnnouncementHandler(dbConn, admins))
 	// messages APIs
 	http.HandleFunc("/api/messages", handlers.ListMessagesHandler(dbConn, admins))
 	http.HandleFunc("/api/message/send", func(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +181,9 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 		}
 	})
 
-	// Admin chat page: render dedicated admin chat UI
+	http.HandleFunc("/admin/announcement/create", handlers.AdminCreateAnnouncementFormHandler(dbConn, admins))
+	http.HandleFunc("/admin/announcement/delete", handlers.AdminDeleteAnnouncementFormHandler(dbConn, admins))
+
 	http.HandleFunc("/admin/chat", func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("session_id")
 		if err != nil || c.Value == "" {

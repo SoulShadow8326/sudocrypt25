@@ -29,6 +29,11 @@ CREATE TABLE IF NOT EXISTS levels (
     data TEXT,
     created_at INTEGER
 );
+CREATE TABLE IF NOT EXISTS announcements (
+	id TEXT PRIMARY KEY,
+	data TEXT,
+	created_at INTEGER
+);
 CREATE TABLE IF NOT EXISTS messages (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	from_email TEXT,
@@ -95,6 +100,9 @@ func Set(d *sql.DB, namespace, key, value string) error {
 	case "levels":
 		_, err := d.Exec(`INSERT OR REPLACE INTO levels(id, data, created_at) VALUES(?,?,?)`, key, value, now)
 		return err
+	case "announcements":
+		_, err := d.Exec(`INSERT OR REPLACE INTO announcements(id, data, created_at) VALUES(?,?,?)`, key, value, now)
+		return err
 	case "logs":
 		parts := strings.SplitN(value, "|", 3)
 		ns := ""
@@ -154,6 +162,8 @@ func Get(d *sql.DB, namespace, key string) (string, error) {
 		query = `SELECT data FROM users WHERE email = ?`
 	case "levels":
 		query = `SELECT data FROM levels WHERE id = ?`
+	case "announcements":
+		query = `SELECT data FROM announcements WHERE id = ?`
 	default:
 		query = `SELECT data FROM users WHERE email = ?`
 	}
@@ -217,6 +227,9 @@ func Delete(d *sql.DB, namespace, key string) error {
 	case "levels":
 		_, err := d.Exec(`DELETE FROM levels WHERE id = ?`, key)
 		return err
+	case "announcements":
+		_, err := d.Exec(`DELETE FROM announcements WHERE id = ?`, key)
+		return err
 	default:
 		_, err := d.Exec(`DELETE FROM users WHERE email = ?`, key)
 		return err
@@ -239,6 +252,8 @@ func GetAll(d *sql.DB, namespace string) (map[string]string, error) {
 		rows, err = d.Query(`SELECT email, data FROM users`)
 	case "levels":
 		rows, err = d.Query(`SELECT id, data FROM levels`)
+	case "announcements":
+		rows, err = d.Query(`SELECT id, data FROM announcements`)
 	case "messages":
 		rows, err = d.Query(`SELECT id, from_email, to_email, level_id, type, content, created_at, read FROM messages ORDER BY created_at ASC`)
 	case "logs":

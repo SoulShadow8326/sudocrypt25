@@ -148,7 +148,38 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 		}
 		checksum := hex.EncodeToString(h.Sum(nil))
 		clientChecksum := r.URL.Query().Get("checksum")
-		if clientChecksum != "" && clientChecksum == checksum {
+		annItems, _ := dbpkg.GetAll(dbConn, "announcements")
+		a := sha256.New()
+		keys := make([]string, 0, len(annItems))
+		for k := range annItems {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			v := annItems[k]
+			var m map[string]interface{}
+			if err := json.Unmarshal([]byte(v), &m); err == nil {
+				if c, ok := m["content"].(string); ok {
+					a.Write([]byte(c))
+				}
+				if t, ok := m["time"]; ok {
+					switch tv := t.(type) {
+					case float64:
+						a.Write([]byte(strconv.FormatInt(int64(tv), 10)))
+					case string:
+						a.Write([]byte(tv))
+					case int64:
+						a.Write([]byte(strconv.FormatInt(tv, 10)))
+					}
+				}
+				a.Write([]byte(k))
+			} else {
+				a.Write([]byte(v))
+			}
+		}
+		annChecksum := hex.EncodeToString(a.Sum(nil))
+		clientAnnChecksum := r.URL.Query().Get("announcements_checksum")
+		if clientChecksum != "" && clientChecksum == checksum && clientAnnChecksum != "" && clientAnnChecksum == annChecksum {
 			w.WriteHeader(http.StatusNotModified)
 			return
 		}
@@ -184,6 +215,6 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			})
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{"checksum": checksum, "messages": out})
+		json.NewEncoder(w).Encode(map[string]interface{}{"checksum": checksum, "announcements_checksum": annChecksum, "messages": out})
 	}
 }

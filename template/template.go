@@ -11,16 +11,17 @@ import (
 var templates *template.Template
 
 type TemplateData struct {
-	PageTitle       string
-	CurrentPath     string
-	User            map[string]interface{}
-	TimeGateStart   string
-	IsAuthenticated bool
-	LeaderboardHTML template.HTML
-	LevelsHTML      template.HTML
-	LevelsData      template.JS
-	LevelNum        string
-	UserEmail       string
+	PageTitle         string
+	CurrentPath       string
+	User              map[string]interface{}
+	TimeGateStart     string
+	IsAuthenticated   bool
+	ShowAnnouncements bool
+	LeaderboardHTML   template.HTML
+	LevelsHTML        template.HTML
+	LevelsData        template.JS
+	LevelNum          string
+	UserEmail         string
 }
 
 func InitTemplates() error {
