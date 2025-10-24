@@ -1,7 +1,7 @@
 :root{
 	--background: #0f1115;
 	--input-border: #c7100db0;
-	--input-focus: #c7110d;
+	--input-focus: #9722e5;
 	--text: #ffffff;
 }
 
@@ -84,7 +84,7 @@ html,body{
 	position:absolute;
 	cursor:pointer;
 	top:0; left:0; right:0; bottom:0;
-	background:#D0483A;
+	background:#9070b8;
 	border-radius:999px;
 	transition: background .2s ease;
 }
@@ -102,7 +102,7 @@ html,body{
 }
 
 .switch input:checked + .slider{
-	background:#06b6d4;
+	background:#9070b8;
 }
 
 .switch input:checked + .slider:before{
@@ -153,7 +153,7 @@ html,body{
 }
 
 .answer-input:focus {
-	border-color: #c7110d;
+	border-color: #9722e5;
 }
 
 .send-button{
@@ -173,7 +173,7 @@ html,body{
 	padding:0;
 }
 
-.send-button:hover{ color:#c7110d; }
+.send-button:hover{ color:#9722e5; }
 
 .send-icon{ width:100%; height:100%; display:block; }
 

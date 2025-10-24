@@ -2,12 +2,12 @@
     overscroll-behavior: none;
 }
 :root {
-    --primary: #c7110d;
+    --primary: #9722e5;
     --foreground: #ffffff;
     --background: #0d0e11;
 }
 *::selection{
-    background-color: #c7110d;
+    background-color: #9722e5;
     color: #ffffff;
 }
 body {

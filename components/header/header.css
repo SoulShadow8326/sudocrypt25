@@ -1,6 +1,6 @@
 
 :root {
-	--primary: #c7110d;
+	--primary: #9722e5;
 	--header-height: 64px;
 	--header-bg: rgba(10, 10, 10, 0.75);
 }
@@ -258,7 +258,7 @@
         border-radius: 10px;
         text-align: center;
         box-sizing: border-box;
-        background: #c7110d;
+        background: #9722e5;
         color: #ffffff!important;
         border: none;
 		transition: transform 0.15s cubic-bezier(.17,.67,.83,.67), box-shadow 0.15s cubic-bezier(.17,.67,.83,.67);

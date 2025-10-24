@@ -154,13 +154,13 @@ func GenerateAdminLevelsHTML(dbConn *sql.DB) (string, string, error) {
 	}
 
 	if len(cryptic) > 0 {
-		sb.WriteString("<h1 class=\"levels-heading\"><span style=\"color: #c7110d\">Cryptic</span> Levels</h1>\n")
+		sb.WriteString("<h1 class=\"levels-heading\"><span style=\"color: #9722e5\">Cryptic</span> Levels</h1>\n")
 		for _, it := range cryptic {
 			render(it)
 		}
 	}
 	if len(ctf) > 0 {
-		sb.WriteString("<h1 class=\"levels-heading\"><span style=\"color: #c7110d\">CTF</span> Levels</h1>\n")
+		sb.WriteString("<h1 class=\"levels-heading\"><span style=\"color: #9722e5\">CTF</span> Levels</h1>\n")
 		for _, it := range ctf {
 			render(it)
 		}
