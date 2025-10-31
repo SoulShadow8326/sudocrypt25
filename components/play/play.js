@@ -92,7 +92,24 @@ async function initPlay() {
     if (lb) {
         console.log('[play.js] top leaderboard entries:', lb.slice(0, 10));
     }
+
+    try {
+        const input = document.getElementById('messageInput');
+        if (input) {
+            input.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitAnswer();
+                }
+            });
+        }
+    } catch (e) {
+        console.warn('[play.js] failed to attach enter handler', e);
+    }
 }
+
+var lastSubmitAt = 0;
+const submitCooldownMs = 3000;
 
 window.addEventListener('load', initPlay);
 
@@ -104,10 +121,33 @@ async function submitAnswer() {
     try {
         const input = document.getElementById('messageInput');
         if (!input) return;
-        const ans = input.value.trim();
-        if (ans === '') return;
+        const now = Date.now();
+        if (now - lastSubmitAt < submitCooldownMs) {
+            const n = new Notyf();
+            n.error('Please wait before submitting again');
+            return;
+        }
+        lastSubmitAt = now;
+        const sendBtn = document.getElementById('sendButton');
+        if (sendBtn) sendBtn.disabled = true;
+        setTimeout(() => { if (sendBtn) sendBtn.disabled = false; }, submitCooldownMs);
+
         const params = new URLSearchParams((new URL(window.location.href)).search);
         const type = params.get('type') || 'cryptic';
+        let ansRaw = input.value;
+        if (type === 'cryptic') {
+            const v = ansRaw.trim().toLowerCase();
+            if (v === '') return;
+            if (!/^[a-z]+$/.test(v)) {
+                const n = new Notyf();
+                n.error('Invalid answer format');
+                return;
+            }
+            ansRaw = v;
+        } else {
+            ansRaw = ansRaw.trim();
+            if (ansRaw === '') return;
+        }
         const url = `/submit?answer=${encodeURIComponent(ans)}&type=${encodeURIComponent(type)}`;
         const resp = await fetch(url, { credentials: 'same-origin' });
         if (!resp.ok) {

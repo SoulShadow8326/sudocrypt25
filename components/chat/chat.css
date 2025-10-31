@@ -1260,3 +1260,14 @@
 .send-button:disabled { opacity: 0.6; cursor: not-allowed }
 
 .send-button svg { width: 18px; height: 18px }
+
+#chatCooldownTimer {
+    position: absolute;
+    right: 48px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(255,255,255,0.85);
+    font-size: 13px;
+    pointer-events: none;
+    z-index: 2;
+}

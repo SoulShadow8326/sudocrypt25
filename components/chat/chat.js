@@ -13,6 +13,9 @@ var chatSignal = Signal('chatOpenState', 'close');
 let chatOpen = false;
 let lastChecksum = '';
 let lastSeenIncomingTs = 0; // latest timestamp o incoming message the user has sen
+let chatLastSendAt = 0;
+const chatCooldownMs = 5000;
+let chatCooldownInterval = null;
 
 function getLatestIncomingTs(msgs) {
 	let maxTs = 0;
@@ -164,6 +167,29 @@ async function sendChatMessage() {
 	const input = document.getElementById('chatInput');
 	const content = (input && input.value || '').trim();
 	if (!content) return;
+	const now = Date.now();
+	if (now - chatLastSendAt < chatCooldownMs) return;
+	chatLastSendAt = now;
+	const timerEl = document.getElementById('chatCooldownTimer');
+	const sendBtnEl = document.getElementById('chatendButton');
+	if (sendBtnEl) {
+		sendBtnEl.disabled = true;
+		sendBtnEl.style.display = 'none';
+	}
+	if (timerEl) timerEl.textContent = Math.ceil(chatCooldownMs/1000) + 's';
+	if (chatCooldownInterval) clearInterval(chatCooldownInterval);
+	chatCooldownInterval = setInterval(() => {
+		const rem = Math.ceil((chatLastSendAt + chatCooldownMs - Date.now())/1000);
+		if (!timerEl) return;
+		if (rem <= 0) {
+			timerEl.textContent = '';
+			if (sendBtnEl) { sendBtnEl.disabled = false; sendBtnEl.style.display = ''; }
+			clearInterval(chatCooldownInterval);
+			chatCooldownInterval = null;
+			return;
+		}
+		timerEl.textContent = rem + 's';
+	}, 250);
 	const to = 'admin@sudocrypt.com';
 	const payload = { to, type: 'message', content };
 	(function optimisticAppend() {
