@@ -22,6 +22,7 @@ type TemplateData struct {
 	LevelsData        template.JS
 	LevelNum          string
 	UserEmail         string
+	SrcHint           template.HTML
 }
 
 func InitTemplates() error {

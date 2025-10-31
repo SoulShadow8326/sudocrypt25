@@ -115,6 +115,15 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 						}
 					}
 					td.LevelNum = fmt.Sprintf("%d", curr)
+
+					levelID := fmt.Sprintf("%s-%d", typ, curr)
+					if lvl, err := handlers.GetLevel(dbConn, levelID); err == nil && lvl != nil {
+						if lvl.SourceHint != "" {
+							td.SrcHint = htmltmpl.HTML("<!--" + lvl.SourceHint + "-->")
+						} else {
+							td.SrcHint = htmltmpl.HTML("")
+						}
+					}
 				}
 			}
 		}
