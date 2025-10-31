@@ -1,14 +1,12 @@
 async function fetchCurrentLevel() {
     try {
         const url = '/api/play/current' + (window.location.search || '');
-        console.log('[play.js] fetching current level from', url);
         const resp = await fetch(url, { credentials: 'same-origin' });
         if (!resp.ok) {
             console.warn('[play.js] current level fetch failed', resp.status, await resp.text());
             return null;
         }
         const data = await resp.json();
-        console.log('[play.js] current level data:', data);
         return data;
     } catch (err) {
         console.error('[play.js] error fetching current level', err);
@@ -19,14 +17,12 @@ async function fetchCurrentLevel() {
 async function fetchLeaderboard() {
     try {
         const url = '/api/leaderboard';
-        console.log('[play.js] fetching leaderboard from', url);
         const resp = await fetch(url, { credentials: 'same-origin' });
         if (!resp.ok) {
             console.warn('[play.js] leaderboard fetch failed', resp.status, await resp.text());
             return null;
         }
         const data = await resp.json();
-        console.log('[play.js] leaderboard data:', data);
         return data;
     } catch (err) {
         console.error('[play.js] error fetching leaderboard', err);
@@ -51,7 +47,6 @@ async function initPlay() {
             console.warn('[play.js] levels list fetch failed', levelsResp.status);
         } else {
             const levels = await levelsResp.json();
-            console.log('[play.js] available levels:', levels);
             if (!Array.isArray(levels) || levels.length === 0) {
                 const level_title = document.getElementById("level_title");
                 if (level_title) level_title.style.display = 'none';
@@ -72,7 +67,6 @@ async function initPlay() {
     const lvl = await fetchCurrentLevel();
     if (lvl) {
         renderMarkup(lvl.markup || markupHTML || '');
-        console.log('[play.js] public_hash:', lvl.public_hash || lvl.PublicHash || '(none)');
         try {
             var titleEl = document.querySelector('.title');
             if (titleEl && lvl.id) {
@@ -90,7 +84,6 @@ async function initPlay() {
     }
     const lb = await fetchLeaderboard();
     if (lb) {
-        console.log('[play.js] top leaderboard entries:', lb.slice(0, 10));
     }
 
     try {
@@ -148,28 +141,38 @@ async function submitAnswer() {
             ansRaw = ansRaw.trim();
             if (ansRaw === '') return;
         }
-        const url = `/submit?answer=${encodeURIComponent(ans)}&type=${encodeURIComponent(type)}`;
+        const url = `/submit?answer=${encodeURIComponent(ansRaw)}&type=${encodeURIComponent(type)}`;
         const resp = await fetch(url, { credentials: 'same-origin' });
+        let data = null;
         if (!resp.ok) {
-            const txt = await resp.text();
+            try {
+                data = await resp.json();
+            } catch (e) {
+                data = null;
+            }
             const n = new Notyf();
-            n.error('submit failed');
+            if (data && data.success === false) {
+                n.error('incorrect');
+            } else {
+                n.error('submit failed');
+            }
             return;
         }
-        const data = await resp.json();
+        try {
+            data = await resp.json();
+        } catch (e) {
+            data = null;
+        }
         const n = new Notyf();
         if (data && data.success) {
             n.success('Correct');
-            input.value = '';
-            const lvl = await fetchCurrentLevel();
-            if (lvl) renderMarkup(lvl.markup || markupHTML || '');
-            fetchLeaderboard();
+            setTimeout(function () { window.location.reload(); }, 300);
         } else {
-            n.error('Incorrect');
+            n.error('incorrect');
         }
     } catch (err) {
         const n = new Notyf();
-        n.error('Error');
+        n.error('submit failed');
     }
 }
 
