@@ -68,6 +68,18 @@ async function initPlay() {
     if (lvl) {
         renderMarkup(lvl.markup || markupHTML || '');
         try {
+            const input = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendButton');
+            if (typeof lvl.LeadsEnabled !== 'undefined' && lvl.LeadsEnabled === false) {
+                if (input) input.disabled = true;
+                if (sendBtn) sendBtn.disabled = true;
+            } else {
+                if (input) input.disabled = false;
+                if (sendBtn) sendBtn.disabled = false;
+            }
+            window.__leadsEnabledForCurrentLevel = (typeof lvl.LeadsEnabled === 'undefined') ? true : !!lvl.LeadsEnabled
+        } catch (e) {}
+        try {
             var titleEl = document.querySelector('.title');
             if (titleEl && lvl.id) {
                 var parts = lvl.id.split('-');
@@ -112,6 +124,11 @@ window.__renderMarkup = renderMarkup;
 
 async function submitAnswer() {
     try {
+        if (window.__leadsEnabledForCurrentLevel === false) {
+            const n = new Notyf();
+            n.error('Leads are disabled for this level');
+            return;
+        }
         const input = document.getElementById('messageInput');
         if (!input) return;
         const now = Date.now();

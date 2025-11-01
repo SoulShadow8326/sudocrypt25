@@ -160,6 +160,7 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 		}
 
 		typ := r.URL.Query().Get("type")
+		leadsEnabledForType := true
 		if typ != "" {
 			acctRaw, err := dbpkg.Get(dbConn, "accounts", requesterRaw)
 			curr := 0
@@ -176,6 +177,16 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			levelID := fmt.Sprintf("%s-%d", typ, curr)
 			if levelID != "" {
 				levelSet[levelID] = struct{}{}
+			}
+			if levelID != "" {
+				if lvlObj, err := GetLevel(dbConn, levelID); err == nil && lvlObj != nil {
+					leadsEnabledForType = lvlObj.LeadsEnabled
+					if leadsEnabledForType {
+						h.Write([]byte("leads_enabled:true"))
+					} else {
+						h.Write([]byte("leads_enabled:false"))
+					}
+				}
 			}
 		}
 		hintsList := make([]map[string]interface{}, 0)
@@ -299,6 +310,6 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			out = append(out, entry)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{"checksum": checksum, "announcements_checksum": annChecksum, "messages": out, "hints": hintsList})
+		json.NewEncoder(w).Encode(map[string]interface{}{"checksum": checksum, "announcements_checksum": annChecksum, "messages": out, "hints": hintsList, "leads_enabled": leadsEnabledForType})
 	}
 }

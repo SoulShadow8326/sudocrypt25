@@ -18,6 +18,8 @@
         href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap">
     <link rel="stylesheet" href="/components/admin/admin.css">
     <link rel="stylesheet" href="/components/main.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"
         integrity="sha512-LhccdVNGe2QMEfI3x4DVV3ckMRe36TfydKss6mJpdHjNFiV07dFpS2xzeZedptKZrwxfICJpez09iNioiSZ3hA=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -35,6 +37,10 @@
         {{template "header" .}}
 
         <div class="levels-wrap" style="min-height: 70%;">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+                <button class="btn-primary" id="turnOnAllLeads">Turn On All</button>
+                <button class="btn-primary" id="turnOffAllLeads">Turn Off All</button>
+            </div>
             {{.LevelsHTML}}
 
             <div class="level-add" onclick="openPopup(-1)">

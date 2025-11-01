@@ -18,11 +18,12 @@ import (
 )
 
 type Level struct {
-	ID         string `json:"id"`
-	Answer     string `json:"answer"`
-	Markup     string `json:"markup"`
-	SourceHint string `json:"sourcehint"`
-	PublicHash string `json:"public_hash,omitempty"`
+	ID           string `json:"id"`
+	Answer       string `json:"answer"`
+	Markup       string `json:"markup"`
+	SourceHint   string `json:"sourcehint"`
+	PublicHash   string `json:"public_hash,omitempty"`
+	LeadsEnabled bool   `json:"leads_enabled,omitempty"`
 }
 
 func isValidLevelID(id string) bool {
@@ -42,6 +43,12 @@ func SetLevelHandler(dbConn *sql.DB) http.HandlerFunc {
 			return
 		}
 		lvl := Level{ID: levelid, Answer: answer, Markup: markup, SourceHint: source, PublicHash: ComputePublicHash(answer)}
+		if existing, err := dbpkg.Get(dbConn, "levels", levelid); err == nil {
+			var prev Level
+			if json.Unmarshal([]byte(existing), &prev) == nil {
+				lvl.LeadsEnabled = prev.LeadsEnabled
+			}
+		}
 		b, _ := json.Marshal(lvl)
 		if err := dbpkg.Set(dbConn, "levels", levelid, string(b)); err != nil {
 			http.Error(w, "db error", http.StatusInternalServerError)
@@ -149,6 +156,11 @@ func GenerateAdminLevelsHTML(dbConn *sql.DB) (string, string, error) {
 		s = strings.ReplaceAll(s, "{{.ID}}", item.lvl.ID)
 		s = strings.ReplaceAll(s, "{{.SourceHint}}", item.lvl.SourceHint)
 		s = strings.ReplaceAll(s, "{{.Answer}}", item.lvl.Answer)
+		if item.lvl.LeadsEnabled {
+			s = strings.ReplaceAll(s, "</div>", "<div class=\"level-controls\"><button class=\"btn-primary small toggle-leads on\" data-level=\""+item.lvl.ID+"\">On</button></div></div>")
+		} else {
+			s = strings.ReplaceAll(s, "</div>", "<div class=\"level-controls\"><button class=\"btn-primary small toggle-leads off\" data-level=\""+item.lvl.ID+"\">Off</button></div></div>")
+		}
 		sb.WriteString(s)
 		dataMap[item.id] = item.lvl
 	}
@@ -285,6 +297,88 @@ func SubmitHandler(dbConn *sql.DB) http.HandlerFunc {
 		lval := fmt.Sprintf("submit|%s|%s|incorrect", typ, strings.TrimSpace(answer))
 		dbpkg.Set(dbConn, "logs", email, lval)
 		json.NewEncoder(w).Encode(map[string]bool{"success": false})
+	}
+}
+
+func AdminLevelLeadsHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("email")
+		if err != nil || c.Value == "" || admins == nil || !admins.IsAdmin(c.Value) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var payload map[string]interface{}
+		if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+			defer r.Body.Close()
+			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+				http.Error(w, "bad payload", http.StatusBadRequest)
+				return
+			}
+		} else {
+			r.ParseForm()
+			payload = map[string]interface{}{}
+			for k := range r.Form {
+				payload[k] = r.Form.Get(k)
+			}
+		}
+		action, _ := payload["action"].(string)
+		enabled := false
+		if v, ok := payload["enabled"]; ok {
+			switch tv := v.(type) {
+			case bool:
+				enabled = tv
+			case string:
+				enabled = strings.EqualFold(tv, "1") || strings.EqualFold(tv, "true")
+			}
+		}
+		switch action {
+		case "set":
+			lvlID, _ := payload["level"].(string)
+			if !isValidLevelID(lvlID) {
+				http.Error(w, "invalid level", http.StatusBadRequest)
+				return
+			}
+			s, err := dbpkg.Get(dbConn, "levels", lvlID)
+			if err != nil {
+				http.Error(w, "db error", http.StatusInternalServerError)
+				return
+			}
+			var lvl Level
+			if err := json.Unmarshal([]byte(s), &lvl); err != nil {
+				http.Error(w, "db error", http.StatusInternalServerError)
+				return
+			}
+			lvl.LeadsEnabled = enabled
+			b, _ := json.Marshal(lvl)
+			if err := dbpkg.Set(dbConn, "levels", lvlID, string(b)); err != nil {
+				http.Error(w, "db error", http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+			return
+		case "all":
+			levels, err := GetAllLevels(dbConn)
+			if err != nil {
+				http.Error(w, "db error", http.StatusInternalServerError)
+				return
+			}
+			for id, lvl := range levels {
+				lvl.LeadsEnabled = enabled
+				b, _ := json.Marshal(lvl)
+				_ = dbpkg.Set(dbConn, "levels", id, string(b))
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+			return
+		default:
+			http.Error(w, "bad action", http.StatusBadRequest)
+			return
+		}
 	}
 }
 

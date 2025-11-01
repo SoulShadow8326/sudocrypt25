@@ -203,6 +203,38 @@ async function doFetch(force) {
 		if (Array.isArray(data.hints)) {
 			renderHintsArray(data.hints);
 		}
+
+		if (typeof data.leads_enabled !== 'undefined') {
+			const leadsOn = !!data.leads_enabled;
+			const chatInputArea = document.querySelector('.chat-input-area');
+			const inputEl = document.getElementById('chatInput');
+			const sendBtn = document.getElementById('chatendButton');
+			let notice = document.getElementById('leadsDisabledNotice');
+			if (!notice && chatInputArea) {
+				notice = document.createElement('div');
+				notice.id = 'leadsDisabledNotice';
+				notice.style.padding = '12px';
+				notice.style.textAlign = 'center';
+				notice.style.color = 'rgba(255,255,255,0.9)';
+				notice.style.background = 'rgba(255,255,255,0.02)';
+				notice.style.borderRadius = '6px';
+				notice.style.fontSize = '14px';
+				notice.style.margin = '8px';
+				notice.textContent = 'Leads have been turned off';
+				chatInputArea.appendChild(notice);
+			}
+			if (!leadsOn) {
+				if (inputEl) inputEl.disabled = true;
+				if (sendBtn) { sendBtn.disabled = true; sendBtn.style.display = 'none'; }
+				if (notice) notice.style.display = '';
+				window.__leadsEnabledForCurrentLevel = false;
+			} else {
+				if (inputEl) inputEl.disabled = false;
+				if (sendBtn) { sendBtn.disabled = false; sendBtn.style.display = ''; }
+				if (notice) notice.style.display = 'none';
+				window.__leadsEnabledForCurrentLevel = true;
+			}
+		}
   } catch (e) {
     console.warn('[chat] doFetch error', e);
   }
@@ -216,6 +248,29 @@ async function pollMessagesLoop() {
 }
 
 async function sendChatMessage() {
+	try {
+		if (window.__leadsEnabledForCurrentLevel === false) {
+			const n = new Notyf();
+			n.error('Leads are disabled for this level');
+			return;
+		}
+		if (typeof window.__leadsEnabledForCurrentLevel === 'undefined') {
+			const levelType = new URLSearchParams((new URL(window.location.href)).search).get('type') || 'cryptic';
+			try {
+				const respLvl = await fetch('/api/play/current?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
+				if (respLvl.ok) {
+					const lvl = await respLvl.json().catch(()=>({}));
+					window.__leadsEnabledForCurrentLevel = (typeof lvl.LeadsEnabled === 'undefined') ? true : !!lvl.LeadsEnabled;
+					if (window.__leadsEnabledForCurrentLevel === false) {
+						const n = new Notyf();
+						n.error('Leads are disabled for this level');
+						return;
+					}
+				}
+			} catch (e) {}
+		}
+	} catch (e) {}
+
 	const input = document.getElementById('chatInput');
 	const content = (input && input.value || '').trim();
 	if (!content) return;
@@ -281,6 +336,26 @@ document.addEventListener('DOMContentLoaded', function () {
 		btn.disabled = false;
 		btn.addEventListener('click', sendChatMessage);
 	}
+	(async function(){
+		try {
+			const levelType = new URLSearchParams((new URL(window.location.href)).search).get('type') || 'cryptic';
+			const respLvl = await fetch('/api/play/current?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
+			if (respLvl.ok) {
+				const lvl = await respLvl.json().catch(()=>({}));
+				const leads = (typeof lvl.LeadsEnabled === 'undefined') ? true : !!lvl.LeadsEnabled;
+				window.__leadsEnabledForCurrentLevel = leads;
+				const btnEl = document.getElementById('chatendButton');
+				const inputEl = document.getElementById('chatInput');
+				if (!leads) {
+					if (btnEl) { btnEl.disabled = true; btnEl.style.display = 'none'; }
+					if (inputEl) inputEl.disabled = true;
+				} else {
+					if (btnEl) { btnEl.disabled = false; btnEl.style.display = ''; }
+					if (inputEl) inputEl.disabled = false;
+				}
+			}
+		} catch (e) {}
+	})();
 	if (input) {
 		input.addEventListener('keydown', function (e) {
 			if (e.key === 'Enter') sendChatMessage();
