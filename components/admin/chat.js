@@ -1,5 +1,6 @@
 let currentUser = '';
 let currentChecksum = '';
+const lastRenderedMaxID = {};
 
 async function fetchAllMessages() {
   const resp = await fetch('/api/messages?mode=admin', { credentials: 'same-origin' });
@@ -11,30 +12,30 @@ async function fetchAllMessages() {
 function buildConversationList(allMsgs) {
   const map = new Map();
   (allMsgs || []).forEach(m => {
-
     const me = window.__adminEmail || '';
     const adminAddress = "admin@sudocrypt.com";
 
     let other = '';
     if (m.from === adminAddress) other = m.to;
     else if (m.to === adminAddress) other = m.from;
-    else if (m.from === me) other = m.to; // legacy rows
-    else if (m.to === me) other = m.from; // legacy rows
-    else return; // not related to this admin
+    else if (m.from === me) other = m.to;
+    else if (m.to === me) other = m.from;
+    else return;
 
-    if (!other || other === adminAddress) return; 
+    if (!other || other === adminAddress) return;
 
     const prev = map.get(other);
-    const ts = m.created_at || m.CreatedAt || 0;
-    if (!prev || ts > prev.ts) map.set(other, { last: m.content, ts });
+    const ts = Number(m.created_at || m.CreatedAt || 0);
+    const otherName = (m.from && String(m.from).toLowerCase() === String(other).toLowerCase()) ? (m.from_name || other) : (m.to_name || other);
+    if (!prev || ts > Number(prev.ts || 0)) map.set(other, { last: m.content, ts, name: otherName });
   });
-  const items = Array.from(map.entries()).sort((a,b)=>b[1].ts - a[1].ts);
+  const items = Array.from(map.entries()).sort((a,b)=> Number(b[1].ts || 0) - Number(a[1].ts || 0));
   const cont = document.getElementById('adminChatList');
   cont.innerHTML = '';
   items.forEach(([email, meta]) => {
     const d = document.createElement('div');
     d.className = 'admin-chat-item' + (email === currentUser ? ' active' : '');
-    d.textContent = email;
+    d.textContent = meta.name || email;
     d.addEventListener('click', () => { selectConversation(email); });
     cont.appendChild(d);
   });
@@ -72,7 +73,16 @@ function renderThread(user, data) {
     row.appendChild(bubble);
     cont.appendChild(row);
   });
-  cont.scrollTop = cont.scrollHeight;
+  let maxID = 0;
+  msgs.forEach(m => {
+    const id = typeof m.id === 'number' ? m.id : parseInt(m.id || 0, 10) || 0;
+    if (id > maxID) maxID = id;
+  });
+  const prevMax = lastRenderedMaxID[user] || 0;
+  if (maxID > prevMax) {
+    cont.scrollTop = cont.scrollHeight;
+  }
+  lastRenderedMaxID[user] = maxID;
 }
 
 async function selectConversation(user) {

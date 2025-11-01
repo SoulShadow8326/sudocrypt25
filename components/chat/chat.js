@@ -13,6 +13,7 @@ var chatSignal = Signal('chatOpenState', 'close');
 let chatOpen = false;
 let lastChecksum = '';
 let lastSeenIncomingTs = 0; // latest timestamp o incoming message the user has sen
+let lastRenderedMaxIDChat = 0;
 let chatLastSendAt = 0;
 const chatCooldownMs = 5000;
 let chatCooldownInterval = null;
@@ -102,7 +103,7 @@ function renderMessages(msgs) {
 	const container = document.getElementById('chatContainer')
 	if (!container || !Array.isArray(msgs)) return;
 	container.innerHTML = '';
-	
+	let maxID = 0;
 	msgs.forEach(m => {
 		const message = document.createElement('div');
 		message.className = 'chat-message ' + (m.is_me ? 'user' : 'admin');
@@ -125,7 +126,14 @@ function renderMessages(msgs) {
 			console.log('Admin message:', m.content);
 		}
 	});
-	container.scrollTop = container.scrollHeight;
+	msgs.forEach(m => {
+		const id = typeof m.id === 'number' ? m.id : parseInt(m.id || 0, 10) || 0;
+		if (id > maxID) maxID = id;
+	});
+	if (maxID > lastRenderedMaxIDChat) {
+		container.scrollTop = container.scrollHeight;
+	}
+	lastRenderedMaxIDChat = Math.max(lastRenderedMaxIDChat, maxID);
 	const latestIncoming = getLatestIncomingTs(msgs);
 	if (chatOpen && latestIncoming > 0) {
 		lastSeenIncomingTs = latestIncoming;

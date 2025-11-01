@@ -36,11 +36,7 @@ CREATE TABLE IF NOT EXISTS announcements (
 );
 CREATE TABLE IF NOT EXISTS messages (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	from_email TEXT,
-	to_email TEXT,
-	level_id TEXT,
-	type TEXT,
-	content TEXT,
+	data TEXT,
 	created_at INTEGER,
 	read INTEGER DEFAULT 0
 );
@@ -120,28 +116,32 @@ func Set(d *sql.DB, namespace, key, value string) error {
 		_, err := d.Exec(`INSERT INTO logs(namespace, key, event, data, created_at) VALUES(?,?,?,?,?)`, ns, key, ev, dat, now)
 		return err
 	case "messages":
-		parts := strings.SplitN(value, "|", 5)
-		from := ""
-		to := ""
-		levelID := ""
-		mtype := ""
-		content := ""
-		if len(parts) > 0 {
-			from = parts[0]
+		v := strings.TrimSpace(value)
+		var dataStr string
+		if strings.HasPrefix(v, "{") || strings.HasPrefix(v, "[") {
+			dataStr = v
+		} else {
+			parts := strings.SplitN(value, "|", 5)
+			obj := map[string]interface{}{"from": "", "to": "", "level_id": "", "type": "", "content": ""}
+			if len(parts) > 0 {
+				obj["from"] = parts[0]
+			}
+			if len(parts) > 1 {
+				obj["to"] = parts[1]
+			}
+			if len(parts) > 2 {
+				obj["level_id"] = parts[2]
+			}
+			if len(parts) > 3 {
+				obj["type"] = parts[3]
+			}
+			if len(parts) > 4 {
+				obj["content"] = parts[4]
+			}
+			b, _ := json.Marshal(obj)
+			dataStr = string(b)
 		}
-		if len(parts) > 1 {
-			to = parts[1]
-		}
-		if len(parts) > 2 {
-			levelID = parts[2]
-		}
-		if len(parts) > 3 {
-			mtype = parts[3]
-		}
-		if len(parts) > 4 {
-			content = parts[4]
-		}
-		_, err := d.Exec(`INSERT INTO messages(from_email, to_email, level_id, type, content, created_at, read) VALUES(?,?,?,?,?,?,?)`, from, to, levelID, mtype, content, now, 0)
+		_, err := d.Exec(`INSERT INTO messages(data, created_at, read) VALUES(?,?,?)`, dataStr, now, 0)
 		return err
 	default:
 		_, err := d.Exec(`INSERT OR REPLACE INTO users(email, data, created_at) VALUES(?,?,?)`, key, value, now)
@@ -196,7 +196,7 @@ func Get(d *sql.DB, namespace, key string) (string, error) {
 func Delete(d *sql.DB, namespace, key string) error {
 	if strings.HasPrefix(namespace, "messages/") {
 		email := strings.TrimPrefix(namespace, "messages/")
-		_, err := d.Exec(`DELETE FROM messages WHERE (from_email = ? OR to_email = ?) AND type = ?`, email, email, key)
+		_, err := d.Exec(`DELETE FROM messages WHERE (json_extract(data, '$.from') = ? OR json_extract(data, '$.to') = ?) AND json_extract(data, '$.type') = ?`, email, email, key)
 		return err
 	}
 	switch namespace {
@@ -255,7 +255,7 @@ func GetAll(d *sql.DB, namespace string) (map[string]string, error) {
 	case "announcements":
 		rows, err = d.Query(`SELECT id, data FROM announcements`)
 	case "messages":
-		rows, err = d.Query(`SELECT id, from_email, to_email, level_id, type, content, created_at, read FROM messages ORDER BY created_at ASC`)
+		rows, err = d.Query(`SELECT id, data, created_at, read FROM messages ORDER BY created_at ASC`)
 	case "logs":
 		rows, err = d.Query(`SELECT id, namespace, key, event, data, created_at FROM logs ORDER BY created_at ASC`)
 	default:
@@ -281,58 +281,23 @@ func GetAll(d *sql.DB, namespace string) (map[string]string, error) {
 			}
 		case "messages":
 			var id int
-			var from, to, levelID, mtype, content sql.NullString
+			var data sql.NullString
 			var createdAt sql.NullInt64
 			var read sql.NullInt64
-			if err := rows.Scan(&id, &from, &to, &levelID, &mtype, &content, &createdAt, &read); err != nil {
+			if err := rows.Scan(&id, &data, &createdAt, &read); err != nil {
 				return nil, err
 			}
 			key := fmt.Sprintf("%d", id)
-			msg := struct {
-				ID        int    `json:"id"`
-				From      string `json:"from"`
-				To        string `json:"to"`
-				LevelID   string `json:"level_id"`
-				Type      string `json:"type"`
-				Content   string `json:"content"`
-				CreatedAt int64  `json:"created_at"`
-				Read      int64  `json:"read"`
-			}{
-				ID: id,
-				From: func() string {
-					if from.Valid {
-						return from.String
-					}
-					return ""
-				}(),
-				To: func() string {
-					if to.Valid {
-						return to.String
-					}
-					return ""
-				}(),
-				LevelID: func() string {
-					if levelID.Valid {
-						return levelID.String
-					}
-					return ""
-				}(),
-				Type: func() string {
-					if mtype.Valid {
-						return mtype.String
-					}
-					return ""
-				}(),
-				Content: func() string {
-					if content.Valid {
-						return content.String
-					}
-					return ""
-				}(),
-				CreatedAt: createdAt.Int64,
-				Read:      read.Int64,
+			payload := map[string]interface{}{}
+			if data.Valid {
+				if err := json.Unmarshal([]byte(data.String), &payload); err != nil {
+					payload = map[string]interface{}{"content": data.String}
+				}
 			}
-			b, err := json.Marshal(msg)
+			payload["id"] = id
+			payload["created_at"] = createdAt.Int64
+			payload["read"] = read.Int64
+			b, err := json.Marshal(payload)
 			if err != nil {
 				return nil, err
 			}

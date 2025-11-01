@@ -138,7 +138,12 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 				}
 			}
 		}
-		sort.Slice(msgs, func(i, j int) bool { return msgs[i].CreatedAt < msgs[j].CreatedAt })
+		sort.Slice(msgs, func(i, j int) bool {
+			if msgs[i].CreatedAt == msgs[j].CreatedAt {
+				return msgs[i].ID < msgs[j].ID
+			}
+			return msgs[i].CreatedAt < msgs[j].CreatedAt
+		})
 		h := sha256.New()
 		for _, m := range msgs {
 			h.Write([]byte(strconv.Itoa(m.ID)))
@@ -201,18 +206,41 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 				displayFrom = "admin@sudocrypt.com"
 			}
 
-			out = append(out, map[string]interface{}{
+			entry := map[string]interface{}{
 				"id":         m.ID,
 				"from":       displayFrom,
 				"to":         m.To,
 				"level_id":   m.LevelID,
 				"type":       m.Type,
 				"content":    m.Content,
+				"from_name":  "",
+				"to_name":    "",
 				"created_at": m.CreatedAt,
 				"read":       m.Read,
 				"is_me":      isMe,
 				"from_label": fromLabel,
-			})
+			}
+
+			fromEmail := strings.ToLower(displayFrom)
+			if acctRaw, err := dbpkg.Get(dbConn, "accounts", fromEmail); err == nil {
+				var acct map[string]interface{}
+				if json.Unmarshal([]byte(acctRaw), &acct) == nil {
+					if n, ok := acct["name"].(string); ok && n != "" {
+						entry["from_name"] = n
+					}
+				}
+			}
+			toEmail := strings.ToLower(m.To)
+			if acctRaw, err := dbpkg.Get(dbConn, "accounts", toEmail); err == nil {
+				var acct map[string]interface{}
+				if json.Unmarshal([]byte(acctRaw), &acct) == nil {
+					if n, ok := acct["name"].(string); ok && n != "" {
+						entry["to_name"] = n
+					}
+				}
+			}
+
+			out = append(out, entry)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]interface{}{"checksum": checksum, "announcements_checksum": annChecksum, "messages": out})
