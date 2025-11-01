@@ -1,10 +1,14 @@
 package handlers
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"sudocrypt25/db"
@@ -19,8 +23,48 @@ func AnnouncementsHandler(dbConn *sql.DB) http.HandlerFunc {
 			json.NewEncoder(w).Encode(sample)
 			return
 		}
+
+		keys := make([]string, 0, len(items))
+		for k := range items {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		var sBuilder strings.Builder
+		for _, k := range keys {
+			v := items[k]
+			var m map[string]interface{}
+			if err := json.Unmarshal([]byte(v), &m); err == nil {
+				text := ""
+				if c, ok := m["content"].(string); ok {
+					text = c
+				}
+				t := m["time"]
+				sBuilder.WriteString(k)
+				sBuilder.WriteString("|")
+				sBuilder.WriteString(text)
+				sBuilder.WriteString("|")
+				switch tv := t.(type) {
+				case float64:
+					sBuilder.WriteString(strconv.FormatInt(int64(tv), 10))
+				case string:
+					sBuilder.WriteString(tv)
+				case int64:
+					sBuilder.WriteString(strconv.FormatInt(tv, 10))
+				}
+				sBuilder.WriteString("::")
+			}
+		}
+		checksum := fmt.Sprintf("%x", sha256.Sum256([]byte(sBuilder.String())))
+
+		clientChecksum := r.URL.Query().Get("checksum")
+		if clientChecksum != "" && clientChecksum == checksum {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+
 		var out []map[string]interface{}
-		for k, v := range items {
+		for _, k := range keys {
+			v := items[k]
 			var m map[string]interface{}
 			if err := json.Unmarshal([]byte(v), &m); err == nil {
 				text := ""
@@ -31,6 +75,7 @@ func AnnouncementsHandler(dbConn *sql.DB) http.HandlerFunc {
 				out = append(out, map[string]interface{}{"id": k, "text": text, "time": t})
 			}
 		}
+		w.Header().Set("X-Announcements-Checksum", checksum)
 		json.NewEncoder(w).Encode(out)
 	}
 }

@@ -151,6 +151,59 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			h.Write([]byte(m.To))
 			h.Write([]byte(strconv.FormatInt(m.CreatedAt, 10)))
 		}
+
+		levelSet := map[string]struct{}{}
+		for _, m := range msgs {
+			if m.LevelID != "" {
+				levelSet[m.LevelID] = struct{}{}
+			}
+		}
+
+		typ := r.URL.Query().Get("type")
+		if typ != "" {
+			acctRaw, err := dbpkg.Get(dbConn, "accounts", requesterRaw)
+			curr := 0
+			if err == nil {
+				var acct map[string]interface{}
+				if json.Unmarshal([]byte(acctRaw), &acct) == nil {
+					if lm, ok := acct["levels"].(map[string]interface{}); ok {
+						if v, ok := lm[typ].(float64); ok {
+							curr = int(v)
+						}
+					}
+				}
+			}
+			levelID := fmt.Sprintf("%s-%d", typ, curr)
+			if levelID != "" {
+				levelSet[levelID] = struct{}{}
+			}
+		}
+		hintsList := make([]map[string]interface{}, 0)
+		for lvl := range levelSet {
+			hintsStr, err := dbpkg.Get(dbConn, "hints", lvl)
+			if err == nil {
+				hintsMap := map[string]string{}
+				json.Unmarshal([]byte(hintsStr), &hintsMap)
+				for k, v := range hintsMap {
+					var he map[string]interface{}
+					if json.Unmarshal([]byte(v), &he) == nil {
+						hintsList = append(hintsList, he)
+						if c, ok := he["content"].(string); ok {
+							h.Write([]byte(c))
+						}
+						if t, ok := he["time"]; ok {
+							switch tv := t.(type) {
+							case float64:
+								h.Write([]byte(strconv.FormatInt(int64(tv), 10)))
+							case string:
+								h.Write([]byte(tv))
+							}
+						}
+						h.Write([]byte(k))
+					}
+				}
+			}
+		}
 		checksum := hex.EncodeToString(h.Sum(nil))
 		clientChecksum := r.URL.Query().Get("checksum")
 		annItems, _ := dbpkg.GetAll(dbConn, "announcements")
@@ -184,9 +237,12 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 		}
 		annChecksum := hex.EncodeToString(a.Sum(nil))
 		clientAnnChecksum := r.URL.Query().Get("announcements_checksum")
-		if clientChecksum != "" && clientChecksum == checksum && clientAnnChecksum != "" && clientAnnChecksum == annChecksum {
-			w.WriteHeader(http.StatusNotModified)
-			return
+
+		if clientChecksum != "" && clientChecksum == checksum {
+			if clientAnnChecksum == "" || clientAnnChecksum == annChecksum {
+				w.WriteHeader(http.StatusNotModified)
+				return
+			}
 		}
 		out := make([]map[string]interface{}, 0, len(msgs))
 		for _, m := range msgs {
@@ -243,6 +299,6 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			out = append(out, entry)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{"checksum": checksum, "announcements_checksum": annChecksum, "messages": out})
+		json.NewEncoder(w).Encode(map[string]interface{}{"checksum": checksum, "announcements_checksum": annChecksum, "messages": out, "hints": hintsList})
 	}
 }

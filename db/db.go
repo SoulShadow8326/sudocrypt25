@@ -34,6 +34,13 @@ CREATE TABLE IF NOT EXISTS announcements (
 	data TEXT,
 	created_at INTEGER
 );
+CREATE TABLE IF NOT EXISTS hints (
+	level_id TEXT,
+	hint_id TEXT,
+	data TEXT,
+	created_at INTEGER,
+	PRIMARY KEY (level_id, hint_id)
+);
 CREATE TABLE IF NOT EXISTS messages (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	data TEXT,
@@ -98,6 +105,15 @@ func Set(d *sql.DB, namespace, key, value string) error {
 		return err
 	case "announcements":
 		_, err := d.Exec(`INSERT OR REPLACE INTO announcements(id, data, created_at) VALUES(?,?,?)`, key, value, now)
+		return err
+	case "hints":
+		parts := strings.SplitN(key, "/", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid hints key")
+		}
+		levelID := parts[0]
+		hintID := parts[1]
+		_, err := d.Exec(`INSERT OR REPLACE INTO hints(level_id, hint_id, data, created_at) VALUES(?,?,?,?)`, levelID, hintID, value, now)
 		return err
 	case "logs":
 		parts := strings.SplitN(value, "|", 3)
@@ -164,6 +180,30 @@ func Get(d *sql.DB, namespace, key string) (string, error) {
 		query = `SELECT data FROM levels WHERE id = ?`
 	case "announcements":
 		query = `SELECT data FROM announcements WHERE id = ?`
+	case "hints":
+		rows, err := d.Query(`SELECT hint_id, data FROM hints WHERE level_id = ? ORDER BY created_at ASC`, key)
+		if err != nil {
+			return "", err
+		}
+		defer rows.Close()
+		m := map[string]string{}
+		for rows.Next() {
+			var id string
+			var data sql.NullString
+			if err := rows.Scan(&id, &data); err != nil {
+				return "", err
+			}
+			if data.Valid {
+				m[id] = data.String
+			} else {
+				m[id] = ""
+			}
+		}
+		b, err := json.Marshal(m)
+		if err != nil {
+			return "", err
+		}
+		return string(b), nil
 	default:
 		query = `SELECT data FROM users WHERE email = ?`
 	}
@@ -230,6 +270,15 @@ func Delete(d *sql.DB, namespace, key string) error {
 	case "announcements":
 		_, err := d.Exec(`DELETE FROM announcements WHERE id = ?`, key)
 		return err
+	case "hints":
+		parts := strings.SplitN(key, "/", 2)
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid hints key")
+		}
+		levelID := parts[0]
+		hintID := parts[1]
+		_, err := d.Exec(`DELETE FROM hints WHERE level_id = ? AND hint_id = ?`, levelID, hintID)
+		return err
 	default:
 		_, err := d.Exec(`DELETE FROM users WHERE email = ?`, key)
 		return err
@@ -258,6 +307,8 @@ func GetAll(d *sql.DB, namespace string) (map[string]string, error) {
 		rows, err = d.Query(`SELECT id, data, created_at, read FROM messages ORDER BY created_at ASC`)
 	case "logs":
 		rows, err = d.Query(`SELECT id, namespace, key, event, data, created_at FROM logs ORDER BY created_at ASC`)
+	case "hints":
+		rows, err = d.Query(`SELECT level_id || '/' || hint_id as key, data FROM hints ORDER BY created_at ASC`)
 	default:
 		return res, nil
 	}

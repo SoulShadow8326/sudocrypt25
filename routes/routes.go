@@ -209,8 +209,15 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 			em = c2.Value
 		}
 		td := template.TemplateData{PageTitle: "Admin Chat", CurrentPath: r.URL.Path, IsAuthenticated: true, UserEmail: em}
+		if html, js, err := handlers.GenerateAdminLevelsHTML(dbConn); err == nil {
+			td.LevelsHTML = htmltmpl.HTML(html)
+			td.LevelsData = htmltmpl.JS(js)
+		}
 		if err := template.RenderTemplate(w, "admin_chat", td); err != nil {
 			http.ServeFile(w, r, "components/admin/chat.html")
 		}
 	})
+
+	http.HandleFunc("/api/hints", handlers.HintsHandler(dbConn))
+	http.HandleFunc("/api/admin/hints", handlers.AdminHintsHandler(dbConn, admins))
 }

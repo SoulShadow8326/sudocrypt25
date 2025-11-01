@@ -88,7 +88,10 @@ function setupChatSignalHandlers() {
 
 async function fetchMessages(checksum) {
 	try {
-		const url = checksum ? "/api/messages?checksum=" + encodeURIComponent(checksum) : "/api/messages";
+		const levelType = new URLSearchParams((new URL(window.location.href)).search).get('type') || 'cryptic';
+		const base = checksum ? ("/api/messages?checksum=" + encodeURIComponent(checksum)) : "/api/messages";
+		const sep = base.indexOf('?') !== -1 ? '&' : '?';
+		const url = base + sep + "type=" + encodeURIComponent(levelType);
 		const resp = await fetch(url, { credentials: 'same-origin' });
 		if (resp.status === 304) return { checksum, messages: null };
 		if (!resp.ok) throw new Error("messages fetch failed: " + resp.status);
@@ -122,9 +125,7 @@ function renderMessages(msgs) {
 		content.appendChild(text);
 		message.appendChild(content);
 		container.appendChild(message);
-		if (!m.is_me) {
-			console.log('Admin message:', m.content);
-		}
+		
 	});
 	msgs.forEach(m => {
 		const id = typeof m.id === 'number' ? m.id : parseInt(m.id || 0, 10) || 0;
@@ -142,12 +143,52 @@ function renderMessages(msgs) {
 	}
 }
 
+function renderHintsArray(hints) {
+	let hintsContainer = document.getElementById('hintsContainer');
+	if (!hintsContainer) {
+		const chatPopup = document.getElementById('chatPopup') || document.body;
+		if (chatPopup) {
+			hintsContainer = document.createElement('div');
+			hintsContainer.id = 'hintsContainer';
+			hintsContainer.className = 'chat-messages-container no-scrollbar';
+			hintsContainer.style.display = 'none';
+			chatPopup.appendChild(hintsContainer);
+		}
+	}
+	if (!hintsContainer) return;
+	hintsContainer.innerHTML = '';
+	if (!Array.isArray(hints) || hints.length === 0) {
+		hintsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">?</div><p>No hints available yet.</p></div>';
+		return;
+	}
+	hints.sort((a,b)=> (Number(a.time||0) - Number(b.time||0)));
+	for (const h of hints) {
+		const wrapper = document.createElement('div');
+		wrapper.className = 'hint-message';
+		const content = document.createElement('div');
+		content.className = 'message-content';
+		const p = document.createElement('p');
+		p.textContent = (h.content || h.text || h.message || '') + '';
+		content.appendChild(p);
+		const timeEl = document.createElement('div');
+		timeEl.className = 'message-time';
+		if (h.time) {
+			const t = Number(h.time)||0;
+			try { timeEl.textContent = new Date(t*1000).toLocaleString(); } catch(e) { timeEl.textContent = String(t); }
+		}
+		wrapper.appendChild(content);
+		wrapper.appendChild(timeEl);
+		hintsContainer.appendChild(wrapper);
+	}
+}
+
 async function doFetch(force) {
   try {
-    const data = await fetchMessages(force ? '' : lastChecksum);
-    if (data && data.messages) {
-      renderMessages(data.messages);
-      lastChecksum = data.checksum || lastChecksum;
+		const data = await fetchMessages(force ? '' : lastChecksum);
+		if (!data) return;
+		if (data.messages) {
+			renderMessages(data.messages);
+			lastChecksum = data.checksum || lastChecksum;
       const latestIncoming = getLatestIncomingTs(data.messages);
       const dot = document.getElementById('chatToggleNotificationDot');
       if (chatOpen) {
@@ -159,6 +200,9 @@ async function doFetch(force) {
         }
       }
     }
+		if (Array.isArray(data.hints)) {
+			renderHintsArray(data.hints);
+		}
   } catch (e) {
     console.warn('[chat] doFetch error', e);
   }
@@ -244,6 +288,96 @@ document.addEventListener('DOMContentLoaded', function () {
 	}
 	pollMessagesLoop();
 });
+
+window.switchChatTab = function(tab) {
+	const tabs = document.querySelectorAll('.chat-tab');
+	tabs.forEach(t => { if (t.dataset && t.dataset.tab) { t.classList.toggle('active', t.dataset.tab === tab); } });
+	const contents = document.querySelectorAll('.chat-tab-content');
+	contents.forEach(c => { c.classList.toggle('active', c.id === (tab === 'leads' ? 'chatContent' : (tab === 'hints' ? 'hintsContent' : ''))); });
+	const hintsContainer = document.getElementById('hintsContainer');
+	if (hintsContainer) {
+		if (tab === 'hints') {
+			hintsContainer.style.display = '';
+			loadHintsForCurrentLevel();
+		} else {
+			hintsContainer.style.display = 'none';
+		}
+	} else {
+		if (tab === 'hints') loadHintsForCurrentLevel();
+	}
+}
+
+async function loadHintsForCurrentLevel() {
+	let hintsContainer = document.getElementById('hintsContainer');
+	if (!hintsContainer) {
+		const chatPopup = document.getElementById('chatPopup') || document.body;
+		if (chatPopup) {
+			hintsContainer = document.createElement('div');
+			hintsContainer.id = 'hintsContainer';
+			hintsContainer.className = 'chat-messages-container no-scrollbar';
+			hintsContainer.style.display = 'none';
+			chatPopup.appendChild(hintsContainer);
+		}
+	}
+	if (!hintsContainer) return;
+	hintsContainer.innerHTML = '';
+	const levelType = new URLSearchParams((new URL(window.location.href)).search).get('type') || 'cryptic';
+	try {
+		const respMsgs = await fetch('/api/messages?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
+		if (respMsgs.ok) {
+			const data = await respMsgs.json().catch(() => ({}));
+			const hintsFromMsgs = Array.isArray(data.hints) ? data.hints : null;
+			if (hintsFromMsgs !== null) {
+				var hints = hintsFromMsgs;
+			} else {
+				const respLvl = await fetch('/api/play/current?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
+				if (!respLvl.ok) throw new Error('no level');
+				const lvl = await respLvl.json();
+				const levelID = lvl.ID || lvl.id || '';
+				if (!levelID) throw new Error('no level');
+				const resp = await fetch('/api/hints?level=' + encodeURIComponent(levelID), { credentials: 'same-origin' });
+				if (!resp.ok) throw new Error('no hints');
+				const js = await resp.json();
+				var hints = Array.isArray(js.hints) ? js.hints : [];
+			}
+		} else {
+			const respLvl = await fetch('/api/play/current?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
+			if (!respLvl.ok) throw new Error('no level');
+			const lvl = await respLvl.json();
+			const levelID = lvl.ID || lvl.id || '';
+			if (!levelID) throw new Error('no level');
+			const resp = await fetch('/api/hints?level=' + encodeURIComponent(levelID), { credentials: 'same-origin' });
+			if (!resp.ok) throw new Error('no hints');
+			const js = await resp.json();
+			var hints = Array.isArray(js.hints) ? js.hints : [];
+		}
+		if (hints.length === 0) {
+			hintsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">?</div><p>No hints available yet.</p></div>';
+			return;
+		}
+		hints.sort((a,b)=> (Number(a.time||0) - Number(b.time||0)));
+		for (const h of hints) {
+			const wrapper = document.createElement('div');
+			wrapper.className = 'hint-message';
+			const content = document.createElement('div');
+			content.className = 'message-content';
+			const p = document.createElement('p');
+			p.textContent = h.content || '';
+			content.appendChild(p);
+			const timeEl = document.createElement('div');
+			timeEl.className = 'message-time';
+			if (h.time) {
+				const t = Number(h.time)||0;
+				try { timeEl.textContent = new Date(t*1000).toLocaleString(); } catch(e) { timeEl.textContent = String(t); }
+			}
+			wrapper.appendChild(content);
+			wrapper.appendChild(timeEl);
+			hintsContainer.appendChild(wrapper);
+		}
+	} catch (e) {
+		hintsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">?</div><p>No hints available yet.</p></div>';
+	}
+}
 
 async function refreshChatContent() {
 	await doFetch(true);

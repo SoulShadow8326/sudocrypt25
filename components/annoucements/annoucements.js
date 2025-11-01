@@ -9,7 +9,9 @@ function renderAnnouncement(a) {
 let lastAnnChecksum = ''
 async function fetchAnnouncementsChecksum() {
     try {
-        const res = await fetch('/api/announcements', { credentials: 'same-origin' })
+        const url = lastAnnChecksum ? ('/api/announcements?checksum=' + encodeURIComponent(lastAnnChecksum)) : '/api/announcements'
+        const res = await fetch(url, { credentials: 'same-origin' })
+        if (res.status === 304) return lastAnnChecksum
         if (!res.ok) return null
         const list = await res.json().catch(() => [])
         if (!Array.isArray(list)) return null

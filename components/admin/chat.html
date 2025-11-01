@@ -20,6 +20,15 @@
         <div class="admin-chat-sidebar">
         <h2>Conversations</h2>
         <div id="adminChatList" class="admin-chat-list"></div>
+        <h2 style="margin-top:16px">Leads</h2>
+        <div id="adminLeadsPanel" class="admin-leads-panel">
+            <select id="leadLevelSelect" class="form-input"></select>
+            <div style="margin-top:8px; display:flex; gap:8px;">
+                <input id="leadContentInput" class="form-input" placeholder="Lead content" />
+                <button id="leadAddBtn" class="button">Add</button>
+            </div>
+            <div id="leadList" style="margin-top:8px; max-height:240px; overflow:auto;"></div>
+        </div>
         </div>
         <div class="admin-chat-main">
         <div id="adminChatHeader" class="admin-chat-header">Select a conversation</div>
@@ -35,6 +44,15 @@
         (function(){
         var el = document.currentScript;
         try { window.__adminEmail = el.getAttribute('data-email') || ''; } catch(e) { window.__adminEmail=''; }
+        })();
+    </script>
+    <script id="levels-data" type="application/json">{{.LevelsData}}</script>
+    <script>
+        (function(){
+            try {
+                var el = document.getElementById('levels-data');
+                window.__adminLevels = JSON.parse(el ? el.textContent || '{}' : '{}');
+            } catch(e) { window.__adminLevels = {}; }
         })();
     </script>
     <script defer type="module" src="/components/admin/chat.js" data-email='{{with .User}}{{index . "email"}}{{end}}'></script>

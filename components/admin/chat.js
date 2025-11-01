@@ -1,12 +1,16 @@
 let currentUser = '';
 let currentChecksum = '';
 const lastRenderedMaxID = {};
+let adminListChecksum = '';
 
 async function fetchAllMessages() {
-  const resp = await fetch('/api/messages?mode=admin', { credentials: 'same-origin' });
+  const url = adminListChecksum ? ('/api/messages?mode=admin&checksum=' + encodeURIComponent(adminListChecksum)) : '/api/messages?mode=admin';
+  const resp = await fetch(url, { credentials: 'same-origin' });
   if (!resp.ok && resp.status !== 304) throw new Error('messages list failed: ' + resp.status);
-  if (resp.status === 304) return { checksum: currentChecksum, messages: null };
-  return await resp.json();
+  if (resp.status === 304) return { checksum: adminListChecksum, messages: null };
+  const js = await resp.json();
+  adminListChecksum = js.checksum || adminListChecksum;
+  return js;
 }
 
 function buildConversationList(allMsgs) {
@@ -181,3 +185,91 @@ async function bootstrap() {
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);
+
+async function fetchLeadsForLevel(level) {
+  try {
+    const resp = await fetch('/api/hints?level=' + encodeURIComponent(level), { credentials: 'same-origin' });
+    if (!resp.ok) return [];
+    const js = await resp.json();
+    return Array.isArray(js.hints) ? js.hints : [];
+  } catch (e) { return []; }
+}
+
+function renderLeads(list, container) {
+  container.innerHTML = '';
+  if (!Array.isArray(list) || list.length === 0) {
+    container.innerHTML = '<div style="padding:8px;color:#888">No leads for this level.</div>';
+    return;
+  }
+  list.forEach(h => {
+    const el = document.createElement('div');
+    el.style.padding = '8px';
+    el.style.borderRadius = '6px';
+    el.style.background = 'rgba(255,255,255,0.02)';
+    el.style.display = 'flex';
+    el.style.justifyContent = 'space-between';
+    el.style.alignItems = 'center';
+    el.style.gap = '8px';
+    const txt = document.createElement('div');
+    txt.style.flex = '1';
+    txt.textContent = h.content || '';
+    const del = document.createElement('button');
+    del.className = 'button';
+    del.textContent = 'Delete';
+    del.addEventListener('click', async () => {
+      const selEl = document.getElementById('leadLevelSelect');
+      const curLevel = selEl ? selEl.value : '';
+      await fetch('/api/admin/hints?level=' + encodeURIComponent(curLevel) + '&id=' + encodeURIComponent(h.id), { method: 'DELETE', credentials: 'same-origin' });
+      const leads = await fetchLeadsForLevel(curLevel);
+      renderLeads(leads, document.getElementById('leadList'));
+    });
+    el.appendChild(txt);
+    el.appendChild(del);
+    container.appendChild(el);
+  });
+}
+
+function populateLeadLevelSelect() {
+  const sel = document.getElementById('leadLevelSelect');
+  if (!sel) return;
+  sel.innerHTML = '';
+  const levels = window.__adminLevels || {};
+  const keys = Object.keys(levels).sort();
+  keys.forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = k;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', async () => {
+    const v = sel.value;
+    const leads = await fetchLeadsForLevel(v);
+    renderLeads(leads, document.getElementById('leadList'));
+  });
+  if (keys.length > 0) {
+    sel.value = keys[0];
+    fetchLeadsForLevel(keys[0]).then(list => renderLeads(list, document.getElementById('leadList')));
+  }
+}
+
+async function setupLeadsUI() {
+  populateLeadLevelSelect();
+  const addBtn = document.getElementById('leadAddBtn');
+  if (!addBtn) return;
+  addBtn.addEventListener('click', async () => {
+    const sel = document.getElementById('leadLevelSelect');
+    const input = document.getElementById('leadContentInput');
+    if (!sel || !input) return;
+    const level = sel.value;
+    const content = input.value.trim();
+    if (!content || !level) return;
+    await fetch('/api/admin/hints', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ level, content, type: level.startsWith('ctf-') ? 'ctf' : 'cryptic' }) });
+    input.value = '';
+    const leads = await fetchLeadsForLevel(level);
+    renderLeads(leads, document.getElementById('leadList'));
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  try { setupLeadsUI(); } catch(e) {}
+});
