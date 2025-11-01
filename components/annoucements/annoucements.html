@@ -44,7 +44,7 @@ const announcement_Item = `
 
 <script>
 function updateAnnouncementsTop() {
-    var header = document.querySelector('header') || document.getElementById('header') || document.querySelector('.header');
+    var header = document.querySelector('header') || document.getElementById('header') || document.querySelector('.header') || document.querySelector('.site-header');
     var top = 14;
     if (header) {
         var rect = header.getBoundingClientRect();
@@ -57,7 +57,7 @@ var resizeObserver = null;
 window.addEventListener('load', function() {
     updateAnnouncementsTop();
     window.addEventListener('resize', updateAnnouncementsTop);
-    var headerEl = document.querySelector('header') || document.getElementById('header') || document.querySelector('.header');
+    var headerEl = document.querySelector('header') || document.getElementById('header') || document.querySelector('.header') || document.querySelector('.site-header');
     if (headerEl && 'ResizeObserver' in window) {
         resizeObserver = new ResizeObserver(updateAnnouncementsTop);
         resizeObserver.observe(headerEl);
