@@ -6,6 +6,7 @@ const popupContainer = document.getElementById('popupContainer');
 const popupContent = document.getElementById('popupContent');
 const sourceHintField = document.getElementById('sourceHintField');
 const answerField = document.getElementById('answerField');
+const walkthroughField = document.getElementById('walkthroughField');
 const levelName = document.getElementById("level_id")
 
 function updateDisplay() {
@@ -37,6 +38,7 @@ function openPopup(levelNumber) {
         displayEl.value = ""
         sourceHintField.value = ''
         answerField.value = ''
+        if (walkthroughField) walkthroughField.value = ''
         popupContainer.style.display = 'flex'
         levelName.innerText = "New Level"
         document.getElementById("levelId").value = ""
@@ -45,6 +47,7 @@ function openPopup(levelNumber) {
         sourceHintField.value = levelsData[levelNumber]["sourcehint"]
         answerField.value = levelsData[levelNumber]["answer"]
         inputEl.value = levelsData[levelNumber]["markup"]
+        try { if (walkthroughField) walkthroughField.value = levelsData[levelNumber]["walkthrough"] || '' } catch(e) {}
         popupContainer.style.display = 'flex'
         levelName.innerText = "Level " + String(levelNumber)
         document.getElementById("levelId").value = String(levelNumber)
@@ -59,6 +62,7 @@ function closePopup() {
 function submitForm() {
     const sourceHint = sourceHintField.value.trim();
     const answer = answerField.value.trim();
+    const walkthrough = (walkthroughField && walkthroughField.value) ? walkthroughField.value.trim() : '';
     var levelId = document.getElementById("levelId").value.trim()
     if (/^[0-9]+$/.test(levelId)) {
         levelId = "cryptic-" + levelId
@@ -66,7 +70,7 @@ function submitForm() {
     if (levelId === "") {
         levelId = "cryptic-0"
     }
-    fetch("/set_level?source=" + encodeURIComponent(sourceHint) + "&answer=" + encodeURIComponent(answer) + "&markup=" + encodeURIComponent(inputEl.value.trim()) + "&levelid=" + String(levelId)).then((x) => {
+    fetch("/set_level?source=" + encodeURIComponent(sourceHint) + "&answer=" + encodeURIComponent(answer) + "&markup=" + encodeURIComponent(inputEl.value.trim()) + "&walkthrough=" + encodeURIComponent(walkthrough) + "&levelid=" + String(levelId)).then((x) => {
         window.location = "/admin"
     })
 }

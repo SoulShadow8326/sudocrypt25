@@ -130,6 +130,7 @@ body {
 	border-radius: 12px;
 	box-sizing: border-box;
 	color: var(--text);
+	overflow: hidden;
 }
 
 .popup-body {
@@ -139,6 +140,9 @@ body {
 	gap: 16px;
 	align-items: center;
     font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+	flex: 1 1 auto;
+	overflow: auto;
+	padding-right: 8px;
 }
 
 .level-title {
@@ -219,7 +223,8 @@ body {
 	display: flex;
 	gap: 12px;
 	justify-content: center;
-	width: 50%;
+	width: 100%;
+	flex: none;
 }
 
 .btn-primary {

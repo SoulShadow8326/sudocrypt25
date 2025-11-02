@@ -23,6 +23,7 @@ type Level struct {
 	Markup       string `json:"markup"`
 	SourceHint   string `json:"sourcehint"`
 	PublicHash   string `json:"public_hash,omitempty"`
+	Walkthrough  string `json:"walkthrough,omitempty"`
 	LeadsEnabled bool   `json:"leads_enabled,omitempty"`
 }
 
@@ -42,7 +43,8 @@ func SetLevelHandler(dbConn *sql.DB) http.HandlerFunc {
 			http.Error(w, "invalid level id", http.StatusBadRequest)
 			return
 		}
-		lvl := Level{ID: levelid, Answer: answer, Markup: markup, SourceHint: source, PublicHash: ComputePublicHash(answer)}
+		walkthrough := q.Get("walkthrough")
+		lvl := Level{ID: levelid, Answer: answer, Markup: markup, SourceHint: source, Walkthrough: walkthrough, PublicHash: ComputePublicHash(answer)}
 		if existing, err := dbpkg.Get(dbConn, "levels", levelid); err == nil {
 			var prev Level
 			if json.Unmarshal([]byte(existing), &prev) == nil {
