@@ -221,4 +221,5 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	http.HandleFunc("/api/hints", handlers.HintsHandler(dbConn))
 	http.HandleFunc("/api/admin/hints", handlers.AdminHintsHandler(dbConn, admins))
 	http.HandleFunc("/api/admin/levels/leads", handlers.AdminLevelLeadsHandler(dbConn, admins))
+	http.HandleFunc("/api/ai/lead", handlers.AILeadHandler(dbConn))
 }

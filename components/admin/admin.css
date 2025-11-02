@@ -236,6 +236,7 @@ body {
 	cursor: pointer;
 	width: 100%;
     font-family: 'Montserrat', system-ui, -apple-system, 'Segoe UI', Roboto, Arial;
+	font-weight: 600px;
 }
 
 .popup-close {

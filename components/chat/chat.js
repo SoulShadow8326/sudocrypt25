@@ -105,6 +105,8 @@ async function fetchMessages(checksum) {
 function renderMessages(msgs) {
 	const container = document.getElementById('chatContainer')
 	if (!container || !Array.isArray(msgs)) return;
+	const optimistic = [];
+	container.querySelectorAll('[data-optimistic="1"]').forEach(n => optimistic.push(n.outerHTML));
 	container.innerHTML = '';
 	let maxID = 0;
 	msgs.forEach(m => {
@@ -127,6 +129,10 @@ function renderMessages(msgs) {
 		container.appendChild(message);
 		
 	});
+
+	for (const o of optimistic) {
+		try { container.insertAdjacentHTML('beforeend', o); } catch(e) {}
+	}
 	msgs.forEach(m => {
 		const id = typeof m.id === 'number' ? m.id : parseInt(m.id || 0, 10) || 0;
 		if (id > maxID) maxID = id;
@@ -221,17 +227,58 @@ async function doFetch(force) {
 				notice.style.fontSize = '14px';
 				notice.style.margin = '8px';
 				notice.textContent = 'Leads have been turned off';
+				const btn = document.createElement('button');
+				btn.textContent = 'Ask AI';
+				btn.className = 'btn-primary';
+				btn.style.marginTop = '8px';
+				btn.addEventListener('click', function(){
+					window.__chatSendToAI = !window.__chatSendToAI;
+					const isAI = !!window.__chatSendToAI;
+					btn.textContent = isAI ? 'AI mode: ON' : 'Ask AI';
+					btn.classList.toggle('active', isAI);
+					const inputEl = document.getElementById('chatInput');
+					const sendBtn = document.getElementById('chatendButton');
+					if (isAI) {
+						if (inputEl) inputEl.disabled = false;
+						if (sendBtn) { sendBtn.disabled = false; sendBtn.style.display = ''; }
+						if (inputEl) inputEl.focus();
+					} else {
+						if (window.__leadsEnabledForCurrentLevel === false) {
+							if (inputEl) inputEl.disabled = true;
+							if (sendBtn) { sendBtn.disabled = true; sendBtn.style.display = 'none'; }
+						} else {
+							if (inputEl) inputEl.disabled = false;
+							if (sendBtn) { sendBtn.disabled = false; sendBtn.style.display = ''; }
+						}
+					}
+				});
+				notice.appendChild(document.createElement('br'));
+				notice.appendChild(btn);
 				chatInputArea.appendChild(notice);
 			}
 			if (!leadsOn) {
-				if (inputEl) inputEl.disabled = true;
-				if (sendBtn) { sendBtn.disabled = true; sendBtn.style.display = 'none'; }
-				if (notice) notice.style.display = '';
+				if (window.__chatSendToAI) {
+					if (inputEl) inputEl.disabled = false;
+					if (sendBtn) { sendBtn.disabled = false; sendBtn.style.display = ''; }
+				} else {
+					if (inputEl) inputEl.disabled = true;
+					if (sendBtn) { sendBtn.disabled = true; sendBtn.style.display = 'none'; }
+				}
+				if (notice) {
+					notice.style.display = '';
+					const b = notice.querySelector('button');
+					if (b) { b.textContent = window.__chatSendToAI ? 'AI mode: ON' : 'Ask AI'; b.classList.toggle('active', !!window.__chatSendToAI); }
+				}
 				window.__leadsEnabledForCurrentLevel = false;
 			} else {
 				if (inputEl) inputEl.disabled = false;
 				if (sendBtn) { sendBtn.disabled = false; sendBtn.style.display = ''; }
-				if (notice) notice.style.display = 'none';
+				if (notice) {
+					notice.style.display = 'none';
+					const b = notice.querySelector('button');
+					if (b) { b.textContent = 'Ask AI'; b.classList.remove('active'); }
+					window.__chatSendToAI = false;
+				}
 				window.__leadsEnabledForCurrentLevel = true;
 			}
 		}
@@ -249,25 +296,27 @@ async function pollMessagesLoop() {
 
 async function sendChatMessage() {
 	try {
-		if (window.__leadsEnabledForCurrentLevel === false) {
-			const n = new Notyf();
-			n.error('Leads are disabled for this level');
-			return;
-		}
-		if (typeof window.__leadsEnabledForCurrentLevel === 'undefined') {
-			const levelType = new URLSearchParams((new URL(window.location.href)).search).get('type') || 'cryptic';
-			try {
-				const respLvl = await fetch('/api/play/current?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
-				if (respLvl.ok) {
-					const lvl = await respLvl.json().catch(()=>({}));
-					window.__leadsEnabledForCurrentLevel = (typeof lvl.LeadsEnabled === 'undefined') ? true : !!lvl.LeadsEnabled;
-					if (window.__leadsEnabledForCurrentLevel === false) {
-						const n = new Notyf();
-						n.error('Leads are disabled for this level');
-						return;
+		if (!window.__chatSendToAI) {
+			if (window.__leadsEnabledForCurrentLevel === false) {
+				const n = new Notyf();
+				n.error('Leads are disabled for this level');
+				return;
+			}
+			if (typeof window.__leadsEnabledForCurrentLevel === 'undefined') {
+				const levelType = new URLSearchParams((new URL(window.location.href)).search).get('type') || 'cryptic';
+				try {
+					const respLvl = await fetch('/api/play/current?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
+					if (respLvl.ok) {
+						const lvl = await respLvl.json().catch(()=>({}));
+						window.__leadsEnabledForCurrentLevel = (typeof lvl.LeadsEnabled === 'undefined') ? true : !!lvl.LeadsEnabled;
+						if (window.__leadsEnabledForCurrentLevel === false) {
+							const n = new Notyf();
+							n.error('Leads are disabled for this level');
+							return;
+						}
 					}
-				}
-			} catch (e) {}
+				} catch (e) {}
+			}
 		}
 	} catch (e) {}
 
@@ -298,6 +347,73 @@ async function sendChatMessage() {
 		timerEl.textContent = rem + 's';
 	}, 250);
 	const to = 'admin@sudocrypt.com';
+	if (window.__chatSendToAI) {
+		(function optimisticAppendAI() {
+			const container = document.getElementById('chatContainer');
+			if (!container) return;
+			const message = document.createElement('div');
+			message.className = 'chat-message user';
+			message.setAttribute('data-optimistic', '1');
+			const contentWrap = document.createElement('div');
+			contentWrap.className = 'chat-message-content';
+			const sender = document.createElement('div');
+			sender.className = 'chat-message-label';
+			sender.textContent = 'You';
+			const text = document.createElement('div');
+			text.className = 'chat-message-text';
+			text.textContent = content;
+			contentWrap.appendChild(sender);
+			contentWrap.appendChild(text);
+			message.appendChild(contentWrap);
+			container.appendChild(message);
+			container.scrollTop = container.scrollHeight;
+		})();
+
+		try {
+			const levelType = new URLSearchParams((new URL(window.location.href)).search).get('type') || 'cryptic';
+			const respLvl = await fetch('/api/play/current?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
+			if (!respLvl.ok) { if (typeof Notyf !== 'undefined') new Notyf().error('no level'); return }
+			const lvl = await respLvl.json().catch(()=>({}));
+			const levelID = lvl.ID || lvl.id || '';
+			if (!levelID) { if (typeof Notyf !== 'undefined') new Notyf().error('no level'); return }
+			const res = await fetch('/api/ai/lead', { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ level: levelID, question: content }) });
+			if (!res.ok) {
+				if (res.status === 404) {
+					if (typeof Notyf !== 'undefined') new Notyf().error('no walkthrough available')
+				} else {
+					if (typeof Notyf !== 'undefined') new Notyf().error('ai error')
+				}
+				return;
+			}
+			const j = await res.json().catch(()=>null);
+			if (!j || typeof j.result === 'undefined') { if (typeof Notyf !== 'undefined') new Notyf().error('ai error'); return }
+			const val = !!j.result;
+			const container = document.getElementById('chatContainer');
+			if (container) {
+				const message = document.createElement('div');
+				message.className = 'chat-message admin';
+				message.setAttribute('data-optimistic', '1');
+				const contentWrap = document.createElement('div');
+				contentWrap.className = 'chat-message-content';
+				const sender = document.createElement('div');
+				sender.className = 'chat-message-label';
+				sender.textContent = 'AI';
+				const text = document.createElement('div');
+				text.className = 'chat-message-text';
+				text.textContent = val ? 'true' : 'false';
+				contentWrap.appendChild(sender);
+				contentWrap.appendChild(text);
+				message.appendChild(contentWrap);
+				container.appendChild(message);
+				container.scrollTop = container.scrollHeight;
+			}
+		} catch (e) { if (typeof Notyf !== 'undefined') new Notyf().error('ai error') }
+
+		if (input) input.value = '';
+		if (typeof refreshChatContent === 'function') refreshChatContent();
+		return;
+	}
+
 	const payload = { to, type: 'message', content };
 	(function optimisticAppend() {
 		const container = document.getElementById('chatContainer');
