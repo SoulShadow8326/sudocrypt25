@@ -30,6 +30,15 @@ function getLatestIncomingTs(msgs) {
 	return maxTs;
 }
 
+function getLevelType() {
+	try {
+		const u = new URL(window.location.href);
+		const t = u.searchParams.get('type');
+		if (u.pathname && u.pathname.indexOf('/play') === 0 && t === 'ctf') return 'ctf';
+	} catch (e) {}
+	return 'cryptic';
+}
+
 function setupChatSignalHandlers() {
 	const chatToggleBtn = document.getElementById("chatToggleBtn");
 	const chatPopup = document.getElementById("chatPopup");
@@ -88,7 +97,7 @@ function setupChatSignalHandlers() {
 
 async function fetchMessages(checksum) {
 	try {
-		const levelType = new URLSearchParams((new URL(window.location.href)).search).get('type') || 'cryptic';
+	const levelType = getLevelType();
 		const base = checksum ? ("/api/messages?checksum=" + encodeURIComponent(checksum)) : "/api/messages";
 		const sep = base.indexOf('?') !== -1 ? '&' : '?';
 		const url = base + sep + "type=" + encodeURIComponent(levelType);
@@ -303,7 +312,7 @@ async function sendChatMessage() {
 				return;
 			}
 			if (typeof window.__leadsEnabledForCurrentLevel === 'undefined') {
-				const levelType = new URLSearchParams((new URL(window.location.href)).search).get('type') || 'cryptic';
+				const levelType = getLevelType();
 				try {
 					const respLvl = await fetch('/api/play/current?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
 					if (respLvl.ok) {
@@ -370,7 +379,7 @@ async function sendChatMessage() {
 		})();
 
 		try {
-			const levelType = new URLSearchParams((new URL(window.location.href)).search).get('type') || 'cryptic';
+			const levelType = getLevelType();
 			const respLvl = await fetch('/api/play/current?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
 			if (!respLvl.ok) { if (typeof Notyf !== 'undefined') new Notyf().error('no level'); return }
 			const lvl = await respLvl.json().catch(()=>({}));
@@ -454,7 +463,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	}
 	(async function(){
 		try {
-			const levelType = new URLSearchParams((new URL(window.location.href)).search).get('type') || 'cryptic';
+			const levelType = getLevelType();
 			const respLvl = await fetch('/api/play/current?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
 			if (respLvl.ok) {
 				const lvl = await respLvl.json().catch(()=>({}));
@@ -512,7 +521,7 @@ async function loadHintsForCurrentLevel() {
 	}
 	if (!hintsContainer) return;
 	hintsContainer.innerHTML = '';
-	const levelType = new URLSearchParams((new URL(window.location.href)).search).get('type') || 'cryptic';
+	const levelType = getLevelType();
 	try {
 		const respMsgs = await fetch('/api/messages?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
 		if (respMsgs.ok) {

@@ -192,32 +192,27 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 
 	http.HandleFunc("/admin/announcement/create", handlers.AdminCreateAnnouncementFormHandler(dbConn, admins))
 	http.HandleFunc("/admin/announcement/delete", handlers.AdminDeleteAnnouncementFormHandler(dbConn, admins))
-
-	http.HandleFunc("/admin/chat", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/dashboard", func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("session_id")
 		if err != nil || c.Value == "" {
-			http.Redirect(w, r, "/auth?toast=1&from=/admin/chat", http.StatusFound)
+			http.Redirect(w, r, "/auth?toast=1&from=/dashboard", http.StatusFound)
 			return
 		}
+		auth := true
 		c2, err := r.Cookie("email")
 		if err != nil || c2.Value == "" || admins == nil || !admins.IsAdmin(c2.Value) {
-			http.Redirect(w, r, "/timegate?toast=1&from=/admin/chat", http.StatusFound)
+			http.Redirect(w, r, "/timegate?toast=1&from=/dashboard", http.StatusFound)
 			return
 		}
-		em := ""
-		if c2 != nil {
-			em = c2.Value
-		}
-		td := template.TemplateData{PageTitle: "Admin Chat", CurrentPath: r.URL.Path, IsAuthenticated: true, UserEmail: em}
+		td := template.TemplateData{PageTitle: "Dashboard", CurrentPath: r.URL.Path, IsAuthenticated: auth}
 		if html, js, err := handlers.GenerateAdminLevelsHTML(dbConn); err == nil {
 			td.LevelsHTML = htmltmpl.HTML(html)
 			td.LevelsData = htmltmpl.JS(js)
 		}
-		if err := template.RenderTemplate(w, "admin_chat", td); err != nil {
-			http.ServeFile(w, r, "components/admin/chat.html")
+		if err := template.RenderTemplate(w, "dashboard", td); err != nil {
+			http.ServeFile(w, r, "components/dashboard/dashboard.html")
 		}
 	})
-
 	http.HandleFunc("/api/hints", handlers.HintsHandler(dbConn))
 	http.HandleFunc("/api/admin/hints", handlers.AdminHintsHandler(dbConn, admins))
 	http.HandleFunc("/api/admin/levels/leads", handlers.AdminLevelLeadsHandler(dbConn, admins))

@@ -196,6 +196,8 @@ async function fetchLeadsForLevel(level) {
 }
 
 function renderLeads(list, container) {
+  if (!container) container = document.getElementById('allLeadList');
+  if (!container) return;
   container.innerHTML = '';
   if (!Array.isArray(list) || list.length === 0) {
     container.innerHTML = '<div style="padding:8px;color:#888">No leads for this level.</div>';
@@ -220,13 +222,42 @@ function renderLeads(list, container) {
       const selEl = document.getElementById('leadLevelSelect');
       const curLevel = selEl ? selEl.value : '';
       await fetch('/api/admin/hints?level=' + encodeURIComponent(curLevel) + '&id=' + encodeURIComponent(h.id), { method: 'DELETE', credentials: 'same-origin' });
-      const leads = await fetchLeadsForLevel(curLevel);
-      renderLeads(leads, document.getElementById('leadList'));
+      try { await renderAllLeads(document.getElementById('allLeadList')); } catch(e) {}
     });
     el.appendChild(txt);
     el.appendChild(del);
     container.appendChild(el);
   });
+}
+
+async function renderAllLeads(container) {
+  if (!container) return;
+  container.innerHTML = '';
+  const levels = window.__adminLevels || {};
+  const keys = Object.keys(levels).sort();
+  if (keys.length === 0) {
+    container.innerHTML = '<div style="padding:8px;color:#888">No levels available.</div>';
+    return;
+  }
+  for (const k of keys) {
+    const section = document.createElement('div');
+    section.style.display = 'flex';
+    section.style.flexDirection = 'column';
+    section.style.gap = '6px';
+    const header = document.createElement('div');
+    header.textContent = k;
+    header.style.fontWeight = '600';
+    header.style.fontSize = '13px';
+    section.appendChild(header);
+    const sub = document.createElement('div');
+    sub.style.display = 'flex';
+    sub.style.flexDirection = 'column';
+    sub.style.gap = '6px';
+    section.appendChild(sub);
+    container.appendChild(section);
+    const leads = await fetchLeadsForLevel(k);
+    renderLeads(leads, sub);
+  }
 }
 
 function populateLeadLevelSelect() {
@@ -243,12 +274,13 @@ function populateLeadLevelSelect() {
   });
   sel.addEventListener('change', async () => {
     const v = sel.value;
-    const leads = await fetchLeadsForLevel(v);
-    renderLeads(leads, document.getElementById('leadList'));
+    try { await renderAllLeads(document.getElementById('allLeadList')); } catch(e) {}
+    scrollToLevel(v);
   });
   if (keys.length > 0) {
     sel.value = keys[0];
-    fetchLeadsForLevel(keys[0]).then(list => renderLeads(list, document.getElementById('leadList')));
+    try { renderAllLeads(document.getElementById('allLeadList')); } catch(e) {}
+    scrollToLevel(keys[0]);
   }
 }
 
@@ -265,9 +297,24 @@ async function setupLeadsUI() {
     if (!content || !level) return;
     await fetch('/api/admin/hints', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ level, content, type: level.startsWith('ctf-') ? 'ctf' : 'cryptic' }) });
     input.value = '';
-    const leads = await fetchLeadsForLevel(level);
-    renderLeads(leads, document.getElementById('leadList'));
+    try { await renderAllLeads(document.getElementById('allLeadList')); } catch(e) {}
+    scrollToLevel(level);
   });
+}
+
+function scrollToLevel(level) {
+  if (!level) return;
+  try {
+    const container = document.getElementById('allLeadList');
+    if (!container) return;
+    const headers = container.querySelectorAll('div > div');
+    for (const h of headers) {
+      if (String(h.textContent || '').trim() === String(level)) {
+        h.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+    }
+  } catch (e) {}
 }
 
 document.addEventListener('DOMContentLoaded', function(){

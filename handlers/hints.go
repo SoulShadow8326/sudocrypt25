@@ -32,18 +32,25 @@ func HintsHandler(dbConn *sql.DB) http.HandlerFunc {
 			http.Error(w, "missing level", http.StatusBadRequest)
 			return
 		}
-		hintsStr, err := dbpkg.Get(dbConn, "hints", level)
+		rows, err := dbConn.Query(`SELECT hint_id, data FROM hints WHERE level_id = ? ORDER BY created_at ASC`, level)
 		if err != nil {
 			http.Error(w, "db error", http.StatusInternalServerError)
 			return
 		}
-		hints := map[string]string{}
-		json.Unmarshal([]byte(hintsStr), &hints)
-		out := make([]HintEntry, 0, len(hints))
-		for id, v := range hints {
+		defer rows.Close()
+		out := make([]HintEntry, 0)
+		for rows.Next() {
+			var id string
+			var data sql.NullString
+			if err := rows.Scan(&id, &data); err != nil {
+				continue
+			}
+			if !data.Valid {
+				continue
+			}
 			var he HintEntry
-			if err := json.Unmarshal([]byte(v), &he); err != nil {
-				he = HintEntry{Time: float64(time.Now().Unix()), Content: v, ID: id, Author: "Exun Clan", Type: "cryptic"}
+			if err := json.Unmarshal([]byte(data.String), &he); err != nil {
+				he = HintEntry{Time: float64(time.Now().Unix()), Content: data.String, ID: id, Author: "Exun Clan", Type: "cryptic"}
 			}
 			out = append(out, he)
 		}
