@@ -42,7 +42,7 @@ async function loadAnnouncements() {
         }
         document.querySelector('.announcements-empty') && (document.querySelector('.announcements-empty').style.display = 'none')
     } catch (err) {
-        const sample = [{ time: 'just now', text: 'Welcome to Sudocrypt 2025' }]
+        const sample = [{ time: 'just now', text: 'Welcome to Sudocrypt v15.0' }]
         for (const item of sample) {
             const div = document.createElement('div')
             div.innerHTML = renderAnnouncement(item)

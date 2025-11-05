@@ -19,7 +19,7 @@ func AnnouncementsHandler(dbConn *sql.DB) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		items, err := db.GetAll(dbConn, "announcements")
 		if err != nil || len(items) == 0 {
-			sample := []map[string]interface{}{{"time": "just now", "text": "Welcome to Sudocrypt 2025"}}
+			sample := []map[string]interface{}{{"time": "just now", "text": "Welcome to Sudocrypt v15.0"}}
 			json.NewEncoder(w).Encode(sample)
 			return
 		}
