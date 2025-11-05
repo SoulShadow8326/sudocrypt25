@@ -72,6 +72,16 @@ function renderThread(user, data) {
     bubble.className = 'msg-bubble';
     const content = document.createElement('div');
     content.className = 'msg-content';
+    const level = m.level_id || m.LevelID || m.level || m.Level || '';
+    if (level) {
+      const lvlEl = document.createElement('div');
+      lvlEl.className = 'msg-level';
+      lvlEl.style.fontSize = '11px';
+      lvlEl.style.opacity = '0.75';
+      lvlEl.style.marginBottom = '6px';
+      lvlEl.textContent = String(level);
+      bubble.appendChild(lvlEl);
+    }
     content.textContent = m.content;
     bubble.appendChild(content);
     row.appendChild(bubble);

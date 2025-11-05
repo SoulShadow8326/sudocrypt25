@@ -423,7 +423,16 @@ async function sendChatMessage() {
 		return;
 	}
 
-	const payload = { to, type: 'message', content };
+	let levelID = '';
+	try {
+		const levelType = getLevelType();
+		const respLvl = await fetch('/api/play/current?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
+		if (respLvl.ok) {
+			const lvl = await respLvl.json().catch(()=>({}));
+			levelID = lvl.ID || lvl.id || '';
+		}
+	} catch (e) {}
+	const payload = { to, type: 'message', content, level: levelID };
 	(function optimisticAppend() {
 		const container = document.getElementById('chatContainer');
 		if (!container) return;
