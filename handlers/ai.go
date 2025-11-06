@@ -19,6 +19,41 @@ import (
 var geminiKeys []string
 var geminiIdx int
 var geminiMu sync.Mutex
+var botPrefix string
+var botLoaded bool
+var botMu sync.Mutex
+
+func loadBotJSON() {
+	botMu.Lock()
+	defer botMu.Unlock()
+	if botLoaded {
+		return
+	}
+	path := os.Getenv("BOT_JSON_PATH")
+	if path == "" {
+		path = "./bot.json"
+	}
+	b, err := os.ReadFile(path)
+	if err != nil {
+		botLoaded = true
+		return
+	}
+	var m map[string]interface{}
+	if json.Unmarshal(b, &m) != nil {
+		botLoaded = true
+		return
+	}
+	keys := []string{"system", "prompt", "instructions", "bot", "description", "intro"}
+	for _, k := range keys {
+		if v, ok := m[k]; ok {
+			if s, ok2 := v.(string); ok2 && strings.TrimSpace(s) != "" {
+				botPrefix = s
+				break
+			}
+		}
+	}
+	botLoaded = true
+}
 
 func loadGeminiKeys() {
 	if len(geminiKeys) > 0 {
@@ -86,11 +121,15 @@ func AILeadHandler(dbConn *sql.DB) http.HandlerFunc {
 			http.Error(w, "no walkthrough", http.StatusNotFound)
 			return
 		}
+		loadBotJSON()
 		promptText := lvl.Walkthrough
 		if q, ok := payload["question"]; ok && strings.TrimSpace(q) != "" {
 			promptText = promptText + "\n\nUser question: " + q
 		}
 		promptText = "You are given the following walkthrough. Answer the user's question if any. Reply with ONLY the word true or false (lowercase) indicating whether the statement/question is valid based on the walkthrough. No other text." + "\n\nWalkthrough:\n" + promptText
+		if botPrefix != "" {
+			promptText = botPrefix + "\n\n" + promptText
+		}
 
 		var textOut string
 		var lastErr string
@@ -101,20 +140,23 @@ func AILeadHandler(dbConn *sql.DB) http.HandlerFunc {
 				break
 			}
 
+			var cli *genai.Client
+			var err error
+			geminiMu.Lock()
 			prev := os.Getenv("GEMINI_API_KEY")
 			os.Setenv("GEMINI_API_KEY", key)
-			cli, err := genai.NewClient(context.Background(), nil)
+			cli, err = genai.NewClient(context.Background(), nil)
+			os.Setenv("GEMINI_API_KEY", prev)
+			geminiMu.Unlock()
 			if err != nil {
 				lastErr = "llm client error: " + err.Error()
 				fmt.Println("ai: genai.NewClient error:", err)
-				os.Setenv("GEMINI_API_KEY", prev)
 				continue
 			}
 
 			ctx2, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 			res, err := cli.Models.GenerateContent(ctx2, "gemini-2.5-flash", genai.Text(promptText), nil)
 			cancel()
-			os.Setenv("GEMINI_API_KEY", prev)
 			if err != nil {
 				lastErr = "llm error: " + err.Error()
 				fmt.Println("ai: GenerateContent error:", err)
