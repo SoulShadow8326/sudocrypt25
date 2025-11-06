@@ -2,7 +2,7 @@ let W = window.innerWidth - 30;
 let H = window.innerHeight - 30;
 const canvas = document.getElementById("canvas");
 const context = canvas.getContext("2d");
-const maxConfettis = 120;
+const maxConfettis = 300;
 const particles = [];
 
 const possibleColors = [
@@ -26,56 +26,113 @@ function randomFromTo(from, to) {
 }
 
 function confettiParticle() {
-    this.x = Math.random() * W;
-    this.y = Math.random() * H - H;
-    this.r = randomFromTo(11, 33);
-    this.d = Math.random() * maxConfettis + 11;
-    this.color =
-        possibleColors[Math.floor(Math.random() * possibleColors.length)];
-    this.tilt = Math.floor(Math.random() * 33) - 11;
+    this.active = false;
+    this.x = 0;
+    this.y = 0;
+    this.vx = 0;
+    this.vy = 0;
+    this.r = 6;
+    this.color = possibleColors[Math.floor(Math.random() * possibleColors.length)];
+    this.tilt = 0;
     this.tiltAngleIncremental = Math.random() * 0.07 + 0.05;
     this.tiltAngle = 0;
+    this.life = 0;
+    this.maxLife = 0;
+    this.burstToken = 0;
+
+    this.resetForBurst = function (bx, by, token) {
+        this.active = true;
+        this.x = bx;
+        this.y = by;
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 8 + 4;
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.r = randomFromTo(6, 18);
+        this.color = possibleColors[Math.floor(Math.random() * possibleColors.length)];
+        this.tilt = Math.random() * 10 - 5;
+        this.tiltAngleIncremental = Math.random() * 0.2 + 0.05;
+        this.tiltAngle = 0;
+        this.life = 0;
+        this.maxLife = randomFromTo(12, 18);
+        this.burstToken = token || 0;
+    };
 
     this.draw = function () {
+        if (!this.active) return;
         context.beginPath();
         context.lineWidth = this.r / 2;
         context.strokeStyle = this.color;
         context.moveTo(this.x + this.tilt + this.r / 3, this.y);
         context.lineTo(this.x + this.tilt, this.y + this.tilt + this.r / 5);
-        return context.stroke();
+        context.stroke();
     };
 }
 
-function Draw() {
-    const results = [];
+let lastBurst = 0;
+let nextBurstIn = randomFromTo(10, 80);
+let burstInProgress = false;
+let activeBurstToken = 0;
+let activeBurstRemaining = 0;
+let burstTokenCounter = 1;
 
-    requestAnimationFrame(Draw);
-
-    context.clearRect(0, 0, W, window.innerHeight);
-
-    for (var i = 0; i < maxConfettis; i++) {
-        results.push(particles[i].draw());
-    }
-
-    let particle = {};
-    let remainingFlakes = 0;
-    for (var i = 0; i < maxConfettis; i++) {
-        particle = particles[i];
-
-        particle.tiltAngle += particle.tiltAngleIncremental;
-        particle.y += (Math.cos(particle.d) + 3 + particle.r / 2) / 2;
-        particle.tilt = Math.sin(particle.tiltAngle - i / 3) * 15;
-
-        if (particle.y <= H) remainingFlakes++;
-
-        if (particle.x > W + 30 || particle.x < -30 || particle.y > H) {
-            particle.x = Math.random() * W;
-            particle.y = -30;
-            particle.tilt = Math.floor(Math.random() * 10) - 20;
+function createBurst() {
+    if (burstInProgress) return 0;
+    burstInProgress = true;
+    const token = burstTokenCounter++;
+    activeBurstToken = token;
+    activeBurstRemaining = 0;
+    const bx = Math.random() * W;
+    const by = Math.random() * H * 0.7 + H * 0.1;
+    const count = randomFromTo(10, 30);
+    let created = 0;
+    for (let i = 0; i < maxConfettis && created < count; i++) {
+        if (!particles[i].active) {
+            particles[i].resetForBurst(bx, by, token);
+            created++;
+            activeBurstRemaining++;
         }
     }
+    for (let i = 0; i < maxConfettis && created < count; i++) {
+        const idx = Math.floor(Math.random() * maxConfettis);
+        particles[idx].resetForBurst(bx, by, token);
+        created++;
+        activeBurstRemaining++;
+    }
+    lastBurst = Date.now();
+    nextBurstIn = randomFromTo(10, 120);
+    return created;
+}
 
-    return results;
+function Draw() {
+    requestAnimationFrame(Draw);
+    context.clearRect(0, 0, W, window.innerHeight);
+    const now = Date.now();
+    if (now - lastBurst > nextBurstIn && !burstInProgress) {
+        createBurst();
+    }
+    for (let i = 0; i < maxConfettis; i++) {
+        const p = particles[i];
+        if (!p.active) continue;
+        p.draw();
+        p.tiltAngle += p.tiltAngleIncremental;
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.25;
+        p.vx *= 0.995;
+        p.vy *= 0.999;
+        p.tilt = Math.sin(p.tiltAngle) * 15;
+        p.life++;
+        if (p.life > p.maxLife || p.y > H + 50 || p.x < -50 || p.x > W + 50) {
+            const token = p.burstToken;
+            p.active = false;
+            p.burstToken = 0;
+            if (token === activeBurstToken) {
+                activeBurstRemaining--;
+                if (activeBurstRemaining <= 0) burstInProgress = false;
+            }
+        }
+    }
 }
 
 window.addEventListener(
