@@ -56,6 +56,117 @@ async function fetchThread(user, checksum) {
 function renderThread(user, data) {
   const header = document.getElementById('adminChatHeader');
   header.textContent = user || 'Select a conversation';
+  let ctrl = document.getElementById('progressControl');
+  if (!ctrl) {
+    ctrl = document.createElement('div');
+    ctrl.id = 'progressControl';
+    ctrl.style.display = 'inline-flex';
+    ctrl.style.alignItems = 'center';
+    ctrl.style.gap = '12px';
+    ctrl.style.marginLeft = '12px';
+
+    function makeTypeControl(typeLabel) {
+      const wrap = document.createElement('div');
+      wrap.style.display = 'inline-flex';
+      wrap.style.alignItems = 'center';
+      wrap.style.gap = '6px';
+
+      const label = document.createElement('div');
+      label.textContent = typeLabel;
+      label.style.fontSize = '12px';
+      label.style.opacity = '0.9';
+
+      const minus = document.createElement('button');
+      minus.className = 'button prog-minus';
+      minus.textContent = '-';
+
+      const val = document.createElement('div');
+      val.className = 'prog-value';
+      val.style.minWidth = '20px';
+      val.style.textAlign = 'center';
+      val.textContent = '0';
+
+      const plus = document.createElement('button');
+      plus.className = 'button prog-plus';
+      plus.textContent = '+';
+
+      wrap.appendChild(label);
+      wrap.appendChild(minus);
+      wrap.appendChild(val);
+      wrap.appendChild(plus);
+      return { wrap, minus, val, plus };
+    }
+
+    const crypticCtrl = makeTypeControl('cryptic');
+    const ctfCtrl = makeTypeControl('ctf');
+
+    ctrl.appendChild(crypticCtrl.wrap);
+    ctrl.appendChild(ctfCtrl.wrap);
+    header.appendChild(ctrl);
+
+    async function refreshProgress() {
+      if (!user) return;
+      try {
+        const resp = await fetch('/api/admin/user/progress?email=' + encodeURIComponent(user), { credentials: 'same-origin' });
+        if (!resp.ok) return;
+        const js = await resp.json();
+        const prog = js.progress || {};
+        let crypticArr = [];
+        let ctfArr = [];
+        if (Array.isArray(prog)) {
+          if (prog.length >= 2) crypticArr = prog;
+        } else if (prog && typeof prog === 'object') {
+          if (Array.isArray(prog.cryptic)) crypticArr = prog.cryptic;
+          if (Array.isArray(prog.ctf)) ctfArr = prog.ctf;
+        }
+        if (Array.isArray(crypticArr) && crypticArr.length >= 2) {
+          crypticCtrl.val.textContent = String(Math.max(0, Math.min(9, Math.floor(Number(crypticArr[1] || 0)))));
+        } else {
+          crypticCtrl.val.textContent = '0';
+        }
+        if (Array.isArray(ctfArr) && ctfArr.length >= 2) {
+          ctfCtrl.val.textContent = String(Math.max(0, Math.min(9, Math.floor(Number(ctfArr[1] || 0)))));
+        } else {
+          ctfCtrl.val.textContent = '0';
+        }
+        crypticCtrl.minus.disabled = Number(crypticCtrl.val.textContent) <= 0;
+        crypticCtrl.plus.disabled = Number(crypticCtrl.val.textContent) >= 9;
+        ctfCtrl.minus.disabled = Number(ctfCtrl.val.textContent) <= 0;
+        ctfCtrl.plus.disabled = Number(ctfCtrl.val.textContent) >= 9;
+      } catch (e) {}
+    }
+
+    function attachHandlers(ctrlObj, type) {
+      ctrlObj.minus.addEventListener('click', async () => {
+        let cur = Number(ctrlObj.val.textContent || 0);
+        if (cur <= 0) return;
+        cur = Math.max(0, cur - 1);
+        ctrlObj.val.textContent = String(cur);
+        ctrlObj.minus.disabled = cur <= 0;
+        ctrlObj.plus.disabled = cur >= 9;
+        try {
+          await fetch('/api/admin/user/progress', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user, action: 'set', type: type, progress: [type + '-0', cur] }) });
+        } catch (e) {}
+      });
+      ctrlObj.plus.addEventListener('click', async () => {
+        let cur = Number(ctrlObj.val.textContent || 0);
+        if (cur >= 9) return;
+        cur = Math.min(9, cur + 1);
+        ctrlObj.val.textContent = String(cur);
+        ctrlObj.minus.disabled = cur <= 0;
+        ctrlObj.plus.disabled = cur >= 9;
+        try {
+          await fetch('/api/admin/user/progress', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: user, action: 'set', type: type, progress: [type + '-0', cur] }) });
+        } catch (e) {}
+      });
+    }
+
+    attachHandlers(crypticCtrl, 'cryptic');
+    attachHandlers(ctfCtrl, 'ctf');
+
+    header._refreshProgress = refreshProgress;
+  }
+  if (header._refreshProgress) header._refreshProgress();
   const cont = document.getElementById('adminChatMessages');
   if (!data || !data.messages) return;
   const msgs = data.messages;

@@ -257,6 +257,20 @@ func SubmitHandler(dbConn *sql.DB) http.HandlerFunc {
 		correct := strings.TrimSpace(lvl.Answer) == strings.TrimSpace(answer)
 		if correct {
 			levelsMap[typ] = float64(curr + 1)
+
+			progMap := map[string][]interface{}{}
+			if pm, ok := acct["progress"].(map[string]interface{}); ok {
+				for k, v := range pm {
+					if arr, ok2 := v.([]interface{}); ok2 && len(arr) >= 2 {
+						progMap[k] = []interface{}{arr[0], arr[1]}
+					}
+				}
+			} else if p, ok := acct["progress"].([]interface{}); ok && len(p) >= 2 {
+				progMap["cryptic"] = []interface{}{p[0], p[1]}
+			}
+			progMap[typ] = []interface{}{fmt.Sprintf("%s-%d", typ, curr+1), float64(0)}
+			acct["progress"] = progMap
+
 			acct["levels"] = levelsMap
 			acct["last_submit"] = float64(now)
 			b, _ := json.Marshal(acct)
