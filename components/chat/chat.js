@@ -118,29 +118,56 @@ function renderMessages(msgs) {
 	container.querySelectorAll('[data-optimistic="1"]').forEach(n => optimistic.push(n.outerHTML));
 	container.innerHTML = '';
 	let maxID = 0;
+	const seen = new Set();
+	const uniqueMsgs = [];
 	msgs.forEach(m => {
+		const id = typeof m.id === 'number' ? m.id : parseInt(m.id || 0, 10) || 0;
+		if (id > 0) {
+			if (seen.has(id)) return;
+			seen.add(id);
+			uniqueMsgs.push(m);
+		} else {
+			const fp = '__' + (m.created_at || m.CreatedAt || '') + '::' + (m.content || '');
+			if (seen.has(fp)) return;
+			seen.add(fp);
+			uniqueMsgs.push(m);
+		}
+	});
+	uniqueMsgs.forEach(m => {
 		const message = document.createElement('div');
 		message.className = 'chat-message ' + (m.is_me ? 'user' : 'admin');
 		const content = document.createElement('div');
 		content.className = 'chat-message-content';
-		
+
 		const sender = document.createElement('div');
 		sender.className = 'chat-message-label';
 		sender.textContent = m.from_label || (m.is_me ? 'You' : 'Admin');
-		
+
 		const text = document.createElement('div');
 		text.className = 'chat-message-text';
 		text.textContent = m.content || '';
-		
+
 		content.appendChild(sender);
 		content.appendChild(text);
 		message.appendChild(content);
 		container.appendChild(message);
-		
 	});
 
 	for (const o of optimistic) {
-		try { container.insertAdjacentHTML('beforeend', o); } catch(e) {}
+		try {
+			const tmp = document.createElement('div');
+			tmp.innerHTML = o;
+			const textEl = tmp.querySelector('.chat-message-text');
+			const text = textEl ? String(textEl.textContent || '').trim() : '';
+			let exists = false;
+			if (text) {
+				const existing = container.querySelectorAll('.chat-message-text');
+				for (const n of existing) {
+					if (String(n.textContent || '').trim() === text) { exists = true; break; }
+				}
+			}
+			if (!exists) container.insertAdjacentHTML('beforeend', o);
+		} catch(e) {}
 	}
 	msgs.forEach(m => {
 		const id = typeof m.id === 'number' ? m.id : parseInt(m.id || 0, 10) || 0;
@@ -439,6 +466,7 @@ async function sendChatMessage() {
 		if (!container) return;
 		const message = document.createElement('div');
 		message.className = 'chat-message user';
+		message.setAttribute('data-optimistic', '1');
 		const contentWrap = document.createElement('div');
 		contentWrap.className = 'chat-message-content';
 		const sender = document.createElement('div');
