@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 	dbpkg "sudocrypt25/db"
 	"sync"
@@ -129,6 +131,92 @@ func AILeadHandler(dbConn *sql.DB) http.HandlerFunc {
 		promptText = "You are given the following walkthrough. Answer the user's question if any. Reply with ONLY the word true or false (lowercase) indicating whether the statement/question is valid based on the walkthrough. No other text." + "\n\nWalkthrough:\n" + promptText
 		if botPrefix != "" {
 			promptText = botPrefix + "\n\n" + promptText
+		}
+
+		userEmail := strings.ToLower(emailC.Value)
+		msgsMap, _ := dbpkg.GetAll(dbConn, "messages")
+		history := make([]struct {
+			ts      int64
+			from    string
+			to      string
+			content string
+		}, 0)
+		for _, v := range msgsMap {
+			var mm map[string]interface{}
+			if json.Unmarshal([]byte(v), &mm) != nil {
+				continue
+			}
+			lid := ""
+			if x, ok := mm["level_id"].(string); ok {
+				lid = x
+			}
+			if lid == "" {
+				if x, ok := mm["level"].(string); ok {
+					lid = x
+				}
+			}
+			if lid == "" {
+				if x, ok := mm["LevelID"].(string); ok {
+					lid = x
+				}
+			}
+			if lid != lvlID {
+				continue
+			}
+			from := ""
+			if x, ok := mm["from"].(string); ok {
+				from = x
+			}
+			to := ""
+			if x, ok := mm["to"].(string); ok {
+				to = x
+			}
+			content := ""
+			if x, ok := mm["content"].(string); ok {
+				content = x
+			}
+			var ts int64
+			if x, ok := mm["created_at"]; ok {
+				switch tv := x.(type) {
+				case float64:
+					ts = int64(tv)
+				case int64:
+					ts = tv
+				case int:
+					ts = int64(tv)
+				case string:
+					if v, err := strconv.ParseInt(tv, 10, 64); err == nil {
+						ts = v
+					}
+				}
+			}
+			lowFrom := strings.ToLower(from)
+			lowTo := strings.ToLower(to)
+			if lowFrom != userEmail && lowTo != userEmail && lowFrom != "admin@sudocrypt.com" && lowTo != "admin@sudocrypt.com" {
+				continue
+			}
+			history = append(history, struct {
+				ts      int64
+				from    string
+				to      string
+				content string
+			}{ts, from, to, content})
+		}
+		if len(history) > 0 {
+			sort.Slice(history, func(i, j int) bool { return history[i].ts < history[j].ts })
+			var b strings.Builder
+			b.WriteString("\n\nConversation history:\n")
+			for _, h := range history {
+				who := "User"
+				if strings.EqualFold(h.from, "admin@sudocrypt.com") {
+					who = "Admin"
+				}
+				if strings.EqualFold(h.from, userEmail) {
+					who = "User"
+				}
+				b.WriteString(fmt.Sprintf("%s: %s\n", who, h.content))
+			}
+			promptText = promptText + b.String()
 		}
 
 		var textOut string

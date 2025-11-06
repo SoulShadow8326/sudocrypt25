@@ -377,6 +377,7 @@ async function sendChatMessage() {
 			container.appendChild(message);
 			container.scrollTop = container.scrollHeight;
 		})();
+		if (input) input.value = '';
 
 		try {
 			const levelType = getLevelType();
@@ -452,6 +453,7 @@ async function sendChatMessage() {
 		container.appendChild(message);
 		container.scrollTop = container.scrollHeight;
 	})();
+	if (input) input.value = '';
 
 	try {
 		await fetch('/api/message/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) });
