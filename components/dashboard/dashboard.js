@@ -132,10 +132,10 @@ async function renderInternalCheckpoints(user) {
 
     function buildSection(type, arr) {
       const section = document.createElement('div');
-      section.style.marginBottom = '12px';
+      section.style.marginBottom = '24px';
       const title = document.createElement('h3');
       title.textContent = type === 'cryptic' ? 'Cryptic Walkthrough' : 'CTF Walkthrough';
-      title.style.margin = '0 0 6px 0';
+      title.style.margin = '0 0 12px 0';
       section.appendChild(title);
 
       const levelId = (Array.isArray(arr) && arr.length > 0 && typeof arr[0] === 'string') ? arr[0] : null;
@@ -144,17 +144,18 @@ async function renderInternalCheckpoints(user) {
       const info = document.createElement('div');
       info.style.fontSize = '13px';
       info.style.opacity = '0.9';
-      info.style.marginBottom = '8px';
+      info.style.marginBottom = '12px';
       info.textContent = levelId ? String(levelId) : 'No level'
       section.appendChild(info);
 
       const partsWrap = document.createElement('div');
-      partsWrap.style.display = 'flex';
-      partsWrap.style.flexDirection = 'column';
-      partsWrap.style.gap = '6px';
+      partsWrap.className = 'checkpoint-section';
 
       if (!levelId) {
-        const empty = document.createElement('div'); empty.textContent = 'No walkthrough parts'; partsWrap.appendChild(empty);
+        const empty = document.createElement('div'); 
+        empty.textContent = 'No walkthrough parts'; 
+        empty.style.paddingLeft = '0';
+        partsWrap.appendChild(empty);
       } else {
         const levels = window.__adminLevels || {};
         const lvl = levels[levelId] || {};
@@ -169,12 +170,13 @@ async function renderInternalCheckpoints(user) {
           if (raw && String(raw).trim() !== '') parts = [String(raw)];
         }
         for (let i=0;i<parts.length;i++) {
-          const row = document.createElement('label');
-          row.style.display = 'flex';
-          row.style.alignItems = 'center';
-          row.style.gap = '8px';
+          const item = document.createElement('div');
+          item.className = 'checkpoint-item';
+
           const cb = document.createElement('input');
           cb.type = 'checkbox';
+          cb.className = 'checkpoint-node';
+          cb.id = 'chk-' + type + '-' + levelId + '-' + String(i);
           cb.dataset.type = type;
           cb.dataset.level = levelId;
           cb.dataset.index = String(i);
@@ -195,14 +197,26 @@ async function renderInternalCheckpoints(user) {
               await fetch('/api/admin/user/progress', { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: user, action: 'set', type: type, progress: [levelId, cnt] }) });
             } catch(e) {}
           });
-          const txt = document.createElement('div');
-          txt.style.fontSize = '13px';
-          txt.textContent = parts[i] || ('Part ' + String(i));
-          row.appendChild(cb);
-          row.appendChild(txt);
-          partsWrap.appendChild(row);
+
+          const line = document.createElement('div');
+          line.className = 'checkpoint-line';
+
+          const content = document.createElement('label');
+          content.className = 'checkpoint-content';
+          content.htmlFor = cb.id;
+          content.textContent = parts[i] || ('Part ' + String(i));
+
+          item.appendChild(cb);
+          item.appendChild(line);
+          item.appendChild(content);
+          partsWrap.appendChild(item);
         }
-        if (parts.length === 0) { const none = document.createElement('div'); none.textContent = 'No walkthrough parts'; partsWrap.appendChild(none); }
+        if (parts.length === 0) { 
+          const none = document.createElement('div'); 
+          none.textContent = 'No walkthrough parts'; 
+          none.style.paddingLeft = '0';
+          partsWrap.appendChild(none); 
+        }
       }
       section.appendChild(partsWrap);
       return section;
