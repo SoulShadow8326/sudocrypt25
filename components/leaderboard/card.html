@@ -27,7 +27,7 @@
     <p class="card-name">{name}</p>
   </div>
   <div class="card-right">
-    <p class="card-points">{level}</p>
+    <p class="card-points">{email_text}{level}</p>
   </div>
 </div>
 <dialog id="dialog_main_{rank}" class="dialog-panel">
@@ -35,7 +35,7 @@
     <img class="dialog-avatar" src="" alt="random pfp" id="dialog_pfp_{rank}" />
     <div class="dialog-details">
       <h1 class="dialog-name">{name}</h1>
-      <p class="dialog-meta">Rank: {rank} • Points: {level} {email_text}</p>
+  <p class="dialog-meta">Rank: {rank} • Points: {email_text}{level}</p>
       <button onclick="dialog('{rank}', 'main', 'close', '{name}')" class="dialog-close">Close</button>
     </div>
   </div>

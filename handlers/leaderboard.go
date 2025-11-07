@@ -90,6 +90,9 @@ func GenerateLeaderboardHTML(dbConn *sql.DB) (string, error) {
 		rank := fmt.Sprintf("%d", i+1)
 		level := fmt.Sprintf("%d", e.Points)
 		emailText := ""
+		if strings.HasSuffix(strings.ToLower(e.Email), "@dpsrkp.net") {
+			emailText = template.HTMLEscapeString("[NC] ")
+		}
 		item := cardTpl
 		item = strings.ReplaceAll(item, "{rank}", rank)
 		item = strings.ReplaceAll(item, "{name}", template.HTMLEscapeString(e.Name))

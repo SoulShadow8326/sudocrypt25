@@ -144,10 +144,13 @@ submitBtn && submitBtn.addEventListener('click', async (e) => {
         try {
             const res = await fetch('/api/auth?' + params.toString())
             const j = await res.json().catch(() => ({}))
-            if (res.ok) {
-                showToast('Auth successful')
-                window.location.href = '/play?auth=signup'
-            } else {
+                if (res.ok) {
+                    showToast('Auth successful')
+                    const params = new URLSearchParams(window.location.search || '')
+                    const from = params.get('from') || '/play'
+                    const sep = from.includes('?') ? '&' : '?'
+                    window.location.href = from + sep + 'auth=signup'
+                } else {
                 showToast(j.error || 'Signup failed', false)
             }
         } catch (err) {
@@ -166,7 +169,10 @@ submitBtn && submitBtn.addEventListener('click', async (e) => {
             const j = await res.json().catch(() => ({}))
             if (res.ok) {
                 showToast('Login successful')
-                window.location.href = '/play?auth=login'
+                const params = new URLSearchParams(window.location.search || '')
+                const from = params.get('from') || '/play'
+                const sep = from.includes('?') ? '&' : '?'
+                window.location.href = from + sep + 'auth=login'
             } else {
                 showToast(j.error || 'Login failed', false)
             }
