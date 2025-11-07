@@ -2,3 +2,5 @@
 .env
 sudocrypt25
 .vscode
+loadbalancer/loadbalancer
+build/

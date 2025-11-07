@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -53,11 +54,22 @@ func main() {
 	}
 	admins := handlers.NewAdmins(os.Getenv("ADMIN_EMAILS"))
 	routes.InitRoutes(dbConn, admins)
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	socketPath := os.Getenv("SOCKET_PATH")
+	if socketPath == "" {
+		socketPath = "/tmp/sudocrypt25.sock"
 	}
-	log.Println("listening on :" + port)
-	log.Printf("http://localhost:%s\n", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	if _, err := os.Stat(socketPath); err == nil {
+		os.Remove(socketPath)
+	}
+	ln, err := net.Listen("unix", socketPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		ln.Close()
+		os.Remove(socketPath)
+	}()
+	os.Chmod(socketPath, 0666)
+	log.Println("listening on unix socket:" + socketPath)
+	log.Fatal(http.Serve(ln, nil))
 }

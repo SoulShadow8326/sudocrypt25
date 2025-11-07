@@ -1,34 +1,37 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+set -e
 
-if [ -f .env ]; then
-  set -a
-  source .env || true
-  set +a
-fi
+echo "Building sudocrypt25 project..."
 
-if [ ! -x ./setup.sh ]; then
-  chmod +x ./setup.sh || true
-fi
+cd "$(dirname "$0")"
+
+echo "Building main application..."
+go build -o sudocrypt25 .
+
+echo "Building load balancer..."
+cd loadbalancer
+go build -o loadbalancer main.go config.go
+cd ..
+
+echo "Starting load balancer..."
+cd loadbalancer
+./loadbalancer &
+LB_PID=$!
+cd ..
+
+sleep 2
+
+echo "Starting main application..."
+./sudocrypt25 &
+MAIN_PID=$!
+
+sleep 2
 
 
-echo "Building server..."
-for bin in  sudocrypt25; do
-  if [ -f "$bin" ]; then
-    rm -f "$bin" || true
-    echo "Removed old binary: $bin"
-  fi
-done
-
-if go build -o sudocrypt25 .; then
-  echo "Built sudocrypt25"
-else
-  echo "Build failed" >&2
-  exit 1
-fi
+echo "All services started:"
+echo "Load Balancer PID: $LB_PID"
+echo "Main App PID: $MAIN_PID"
 echo "███████╗ ██╗  ██╗ ██╗   ██╗ ███╗   ██╗"
 echo "██╔════╝ ██║  ██║ ██║   ██║ ████╗  ██║"
 echo "█████╗     ███╔═╝ ██║   ██║ ██╔██╗ ██║"
@@ -36,4 +39,16 @@ echo "██╔══╝   ██╔══██║ ██║   ██║ ██
 echo "███████╗ ██║  ██║ ╚██████╔╝ ██║ ╚████║"
 echo "╚══════╝ ╚═╝  ╚═╝  ╚═════╝  ╚═╝  ╚═══╝"
 
-./sudocrypt25
+echo "running"
+
+cleanup() {
+    echo "Stopping all services..."
+    kill $MAIN_PID 2>/dev/null || true
+    kill $LB_PID 2>/dev/null || true
+    echo "All services stopped."
+    exit 0
+}
+
+trap cleanup SIGINT SIGTERM
+
+wait

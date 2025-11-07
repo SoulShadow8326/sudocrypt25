@@ -24,3 +24,7 @@ html,body{ height:100%; margin:0; font-family: 'Montserrat', system-ui, -apple-s
     .leaderboard-container{ padding:32px 40px; }
     .leaderboard-title{ font-size:2rem; }
 }
+
+.dialog-close{
+    font-family: Montserrat;
+}
