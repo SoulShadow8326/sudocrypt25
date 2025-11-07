@@ -7,6 +7,8 @@ const popupContent = document.getElementById('popupContent');
 const sourceHintField = document.getElementById('sourceHintField');
 const answerField = document.getElementById('answerField');
 const walkthroughField = document.getElementById('walkthroughField');
+const addWalkthroughPartBtn = document.getElementById('addWalkthroughPartBtn');
+const clearWalkthroughPartsBtn = document.getElementById('clearWalkthroughPartsBtn');
 const levelName = document.getElementById("level_id")
 
 function updateDisplay() {
@@ -39,6 +41,17 @@ function openPopup(levelNumber) {
         sourceHintField.value = ''
         answerField.value = ''
         if (walkthroughField) walkthroughField.value = ''
+        const walkthroughPartsContainer = document.getElementById('walkthroughParts');
+        if (walkthroughPartsContainer) {
+            walkthroughPartsContainer.innerHTML = '';
+            const ta = document.createElement('textarea');
+            ta.className = 'walkthrough-part form-input';
+            ta.setAttribute('data-index', '0');
+            ta.placeholder = 'Walkthrough part 0';
+            ta.style.minHeight = '120px';
+            ta.style.resize = 'vertical';
+            walkthroughPartsContainer.appendChild(ta);
+        }
         popupContainer.style.display = 'flex'
         levelName.innerText = "New Level"
         document.getElementById("levelId").value = ""
@@ -47,7 +60,30 @@ function openPopup(levelNumber) {
         sourceHintField.value = levelsData[levelNumber]["sourcehint"]
         answerField.value = levelsData[levelNumber]["answer"]
         inputEl.value = levelsData[levelNumber]["markup"]
-        try { if (walkthroughField) walkthroughField.value = levelsData[levelNumber]["walkthrough"] || '' } catch(e) {}
+        try {
+            const raw = levelsData[levelNumber]["walkthrough"] || '';
+            let parts = [];
+            try {
+                const parsed = JSON.parse(raw || 'null');
+                if (Array.isArray(parsed)) parts = parsed.map(p=>p+"");
+            } catch(e) {
+                if (raw && String(raw).trim() !== '') parts = [String(raw)];
+            }
+            // clear existing parts
+            const walkthroughPartsContainer = document.getElementById('walkthroughParts');
+            if (walkthroughPartsContainer) walkthroughPartsContainer.innerHTML = '';
+            if (parts.length === 0) parts = [''];
+            parts.slice(0,10).forEach((p,i)=>{
+                const ta = document.createElement('textarea');
+                ta.className = 'walkthrough-part form-input';
+                ta.setAttribute('data-index', String(i));
+                ta.placeholder = 'Walkthrough part ' + String(i);
+                ta.style.minHeight = '120px';
+                ta.style.resize = 'vertical';
+                ta.value = p || '';
+                if (walkthroughPartsContainer) walkthroughPartsContainer.appendChild(ta);
+            });
+        } catch(e) {}
         popupContainer.style.display = 'flex'
         levelName.innerText = "Level " + String(levelNumber)
         document.getElementById("levelId").value = String(levelNumber)
@@ -62,7 +98,13 @@ function closePopup() {
 function submitForm() {
     const sourceHint = sourceHintField.value.trim();
     const answer = answerField.value.trim();
-    const walkthrough = (walkthroughField && walkthroughField.value) ? walkthroughField.value.trim() : '';
+    let walkthrough = '';
+    try {
+        const walkthroughPartsContainer = document.getElementById('walkthroughParts');
+        const partsEls = walkthroughPartsContainer ? Array.from(walkthroughPartsContainer.querySelectorAll('.walkthrough-part')) : [];
+        const parts = partsEls.map(el=>String(el.value||'').trim()).filter(x=>x!=='').slice(0,10);
+        walkthrough = JSON.stringify(parts);
+    } catch(e) { walkthrough = JSON.stringify([]); }
     var levelId = document.getElementById("levelId").value.trim()
     if (/^[0-9]+$/.test(levelId)) {
         levelId = "cryptic-" + levelId
@@ -74,6 +116,38 @@ function submitForm() {
         window.location = "/admin"
     })
 }
+
+function addWalkthroughPart() {
+    try {
+        const walkthroughPartsContainer = document.getElementById('walkthroughParts');
+        const existing = walkthroughPartsContainer ? walkthroughPartsContainer.querySelectorAll('.walkthrough-part') : [];
+        if (existing.length >= 10) return;
+        const i = existing.length;
+        const ta = document.createElement('textarea');
+        ta.className = 'walkthrough-part form-input';
+        ta.setAttribute('data-index', String(i));
+        ta.placeholder = 'Walkthrough part ' + String(i);
+        ta.style.minHeight = '120px';
+        ta.style.resize = 'vertical';
+        if (walkthroughPartsContainer) walkthroughPartsContainer.appendChild(ta);
+    } catch(e) {}
+}
+
+function clearWalkthroughParts() {
+    try {
+        const walkthroughPartsContainer = document.getElementById('walkthroughParts');
+        if (!walkthroughPartsContainer) return;
+        const existing = walkthroughPartsContainer.querySelectorAll('.walkthrough-part');
+        if (!existing || existing.length <= 1) return;
+        const last = existing[existing.length - 1];
+        last.parentNode.removeChild(last);
+    } catch(e) {}
+}
+
+if (addWalkthroughPartBtn) addWalkthroughPartBtn.addEventListener('click', addWalkthroughPart);
+else window.addEventListener('load', function(){ const b = document.getElementById('addWalkthroughPartBtn'); if (b) b.addEventListener('click', addWalkthroughPart); });
+if (clearWalkthroughPartsBtn) clearWalkthroughPartsBtn.addEventListener('click', clearWalkthroughParts);
+else window.addEventListener('load', function(){ const b = document.getElementById('clearWalkthroughPartsBtn'); if (b) b.addEventListener('click', clearWalkthroughParts); });
 
 function deleteLevel() {
     var levelId = document.getElementById("levelId").value.trim()

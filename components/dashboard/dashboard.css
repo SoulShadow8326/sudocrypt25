@@ -162,3 +162,26 @@ body {
     font-size: 32px;
     font-weight: 700;
 }
+.admin-check-list {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    padding: 8px 0;
+}
+.admin-check-sidebar {
+    width: 280px;
+    background: #171923;
+    border: 1px solid #2a2e3f;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-width: 220px;
+}
+
+.admin-check-sidebar h2 {
+    margin: 0;
+    padding: 12px 16px;
+    border-bottom: 1px solid #2a2e3f;
+    font-size: 16px;
+}

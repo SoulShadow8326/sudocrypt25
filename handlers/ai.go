@@ -124,7 +124,13 @@ func AILeadHandler(dbConn *sql.DB) http.HandlerFunc {
 			return
 		}
 		loadBotJSON()
-		promptText := lvl.Walkthrough
+		var promptText string
+		var arr []string
+		if json.Unmarshal([]byte(lvl.Walkthrough), &arr) == nil {
+			promptText = strings.Join(arr, "\n\n")
+		} else {
+			promptText = lvl.Walkthrough
+		}
 		if q, ok := payload["question"]; ok && strings.TrimSpace(q) != "" {
 			promptText = promptText + "\n\nUser question: " + q
 		}

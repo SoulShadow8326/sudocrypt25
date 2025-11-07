@@ -76,7 +76,13 @@
                     <div class="form-row">
                         <div class="form-col" style="flex:1;">
                             <p class="form-label">Walkthrough</p>
-                            <textarea id="walkthroughField" class="form-input" placeholder="Walkthrough content" style="min-height:120px;resize:vertical;"></textarea>
+                            <div id="walkthroughParts" style="display:flex;flex-direction:column;gap:8px;">
+                                <textarea class="walkthrough-part form-input" data-index="0" placeholder="Walkthrough part 0" style="min-height:120px;resize:vertical;"></textarea>
+                            </div>
+                            <div style="margin-top:8px;display:flex;gap:8px;">
+                                <button type="button" id="addWalkthroughPartBtn" class="btn-primary">Add walkthrough portion</button>
+                                <button type="button" id="clearWalkthroughPartsBtn" class="btn-primary" style="background:#444;">Remove walkthrough portion</button>
+                            </div>
                         </div>
                     </div>
 
