@@ -66,6 +66,7 @@ function setupChatSignalHandlers() {
 			}, 200);
 			const dot = document.getElementById('chatToggleNotificationDot');
 			if (dot) dot.style.display = 'none';
+			updateChatIcon(false);
 		} else {
 			chatOpen = false;
 			chatToggleBtn.style.display = "block";
@@ -236,10 +237,15 @@ async function doFetch(force) {
       if (chatOpen) {
         if (dot) dot.style.display = 'none';
         if (latestIncoming > 0) lastSeenIncomingTs = latestIncoming;
+
+		updateChatIcon(false);
       } else {
         if (latestIncoming > lastSeenIncomingTs) {
           if (dot) dot.style.display = 'block';
-        }
+			updateChatIcon(true);
+        }else{
+			updateChatIcon(false);
+		}
       }
     }
 		if (Array.isArray(data.hints)) {
@@ -622,4 +628,37 @@ async function refreshChatContent() {
 	await doFetch(true);
 }
 
+function updateChatIcon(hasNewMessages) {
+    const chatToggleBtn = document.getElementById("chatToggleBtn");
+    const imgElement = chatToggleBtn?.querySelector('.user-img');
+    
+    if (!imgElement) return;
+    
+    if (hasNewMessages) {
+		const wrapper = document.createElement("div");
+		wrapper.innerHTML = `
+			<svg xmlns="http://www.w3.org/2000/svg"
+		width="60" height="60" viewBox="0 0 24 24"
+		fill="none" stroke="#9722e5" stroke-width="2"
+		stroke-linecap="round" stroke-linejoin="round"
+		class="user-img lucide-message-circle-more">
+			<path d="M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719"/>
+			<path d="M8 12h.01"/>
+			<path d="M12 12h.01"/>
+			<path d="M16 12h.01"/>
+			</svg>
+			`.trim();
 
+		const newIcon = wrapper.firstChild;
+		imgElement.replaceWith(newIcon);
+
+    } else {
+        if (imgElement.tagName === 'svg') {
+            const originalImg = document.createElement('img');
+            originalImg.src = "components/assets/message-circle.svg";
+            originalImg.alt = "Chat";
+            originalImg.className = "user-img";
+            imgElement.replaceWith(originalImg);
+        }
+    }
+}
