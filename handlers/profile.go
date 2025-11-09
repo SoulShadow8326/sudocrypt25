@@ -123,6 +123,17 @@ func UserProfileHandler(dbConn *sql.DB) http.HandlerFunc {
 			userImg = fmt.Sprintf("https://api.dicebear.com/9.x/big-smile/svg?seed=%s", email)
 		}
 
+		levelsCryptic := 0.0
+		levelsCTF := 0.0
+		if lv, ok := acct["levels"].(map[string]interface{}); ok {
+			if v, ok2 := lv["cryptic"].(float64); ok2 {
+				levelsCryptic = v
+			}
+			if v, ok2 := lv["ctf"].(float64); ok2 {
+				levelsCTF = v
+			}
+		}
+
 		data := map[string]interface{}{
 			"Name":            displayName,
 			"Email":           email,
@@ -131,8 +142,50 @@ func UserProfileHandler(dbConn *sql.DB) http.HandlerFunc {
 			"IsOwnProfile":    isOwnProfile,
 			"BioPublic":       bioPublic,
 			"ShowBio":         showBio,
+			"LevelsCryptic":   levelsCryptic,
+			"LevelsCTF":       levelsCTF,
+			"ScoreTimes":      nil,
+			"ScorePoints":     nil,
 			"PageTitle":       fmt.Sprintf("%s - Profile", displayName),
 			"IsAuthenticated": true,
+		}
+
+		logsMap, _ := dbpkg.GetAll(dbConn, "logs")
+		times := []int64{}
+		points := []int{}
+		cum := 0
+		for _, v := range logsMap {
+			var entry struct {
+				ID        int    `json:"id"`
+				Namespace string `json:"namespace"`
+				Key       string `json:"key"`
+				Event     string `json:"event"`
+				Data      string `json:"data"`
+				CreatedAt int64  `json:"created_at"`
+			}
+			if err := json.Unmarshal([]byte(v), &entry); err != nil {
+				continue
+			}
+			if entry.Key != email {
+				continue
+			}
+			if entry.Namespace != "submit" {
+				continue
+			}
+			if strings.Contains(entry.Data, "correct") {
+				cum += 1
+				times = append(times, entry.CreatedAt)
+				points = append(points, cum)
+			}
+		}
+		if len(times) > 0 {
+			tb, _ := json.Marshal(times)
+			pb, _ := json.Marshal(points)
+			data["ScoreTimesJSON"] = string(tb)
+			data["ScorePointsJSON"] = string(pb)
+		} else {
+			data["ScoreTimesJSON"] = "[]"
+			data["ScorePointsJSON"] = "[]"
 		}
 
 		tmpl, err := htmltmpl.ParseFiles("components/profile/profile.html", "components/header/header.html", "components/footer/footer.html")

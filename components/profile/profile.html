@@ -79,61 +79,26 @@
                 {{end}}
             </div>
         </div>
+        <div class="profile-line">
+            <div class="profile-line-card">
+                <canvas id="scoreTimeChart" width="400" height="200"></canvas>
+            </div>
+        </div>
     </div>
 
-    <script>
-        const notyf = new Notyf();
-        
-        function enterEditMode() {
-            document.getElementById('bioViewMode').style.display = 'none';
-            document.getElementById('bioEditMode').style.display = 'block';
-            document.getElementById('bioInput').focus();
-        }
-        
-        function cancelEdit() {
-            document.getElementById('bioEditMode').style.display = 'none';
-            document.getElementById('bioViewMode').style.display = 'block';
-        }
-        
-        async function saveBio() {
-            const bio = document.getElementById('bioInput').value.trim();
-            const bioPublic = document.getElementById('bioPublicCheck').checked;
-            
-            try {
-                const res = await fetch('/api/user/update_bio', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ bio, bio_public: bioPublic })
-                });
-                
-                const data = await res.json();
-                
-                if (res.ok) {
-                    notyf.success('Bio updated successfully!');
-                    
-                    const bioTextEl = document.getElementById('bioText');
-                    if (bio) {
-                        bioTextEl.innerHTML = bio;
-                    } else {
-                        bioTextEl.innerHTML = '<span class="empty-bio">No bio yet. Click edit to add one!</span>';
-                    }
-                    
-                    const noticeEl = document.querySelector('.bio-private-notice');
-                    if (bioPublic) {
-                        noticeEl.textContent = 'Bio status: public';
-                    } else {
-                        noticeEl.textContent = 'Bio status: private';
-                    }
-                    
-                    cancelEdit();
-                } else {
-                    notyf.error(data.error || 'Failed to update bio');
-                }
-            } catch (err) {
-                notyf.error('Failed to update bio');
-            }
-        }
-    </script>
+    <div class="profile-stats-row" data-levels-cryptic="{{.LevelsCryptic}}" data-levels-ctf="{{.LevelsCTF}}" data-score-times='{{.ScoreTimesJSON}}' data-score-points='{{.ScorePointsJSON}}'>
+        <div class="stat-card">
+            <h3 class="stat-title">Score Breakdown</h3>
+            <canvas id="scoreChart" width="200" height="200"></canvas>
+        </div>
+        <div class="stat-card">
+            <h3 class="stat-title">Completed Levels</h3>
+            <canvas id="levelsChart" width="200" height="200"></canvas>
+        </div>
+    </div>
+    </div>
+
+    <script src="/components/profile/profile.js"></script>
 
     {{template "footer" .}}
 </body>

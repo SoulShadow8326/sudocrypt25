@@ -4,18 +4,49 @@
     margin: 2rem auto;
     padding: 2rem;
     display: flex;
-    justify-content: space-between;
+    gap: 2rem;
+    align-items: center;
+    justify-content: flex-start;
+    box-sizing: border-box;
 }
 .profile-card {
-    width: 20%;
+    flex: 0 0 25%;
     background-color: rgba(255, 255, 255, 0.07);
     border: 3px solid #9722E5;  
     border-radius: 12px;
     padding: 2rem;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     text-align: center;
-    margin-left: 1rem;
+    margin-left: 0;
 }
+
+.profile-line {
+    flex: 1 1 60%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.profile-line-card {
+    width: 100%;
+    max-width: 800px;
+    background-color: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+}
+
+.profile-card.profile-levels {
+    flex: 0 0 25%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+
 .profile-avatar {
     width: 150px;
     height: 150px;
@@ -43,6 +74,49 @@
 .profile-email {
     color: #666;
     margin: 0 0 1rem 0;
+}
+
+.profile-stats-row {
+    width: 100%;
+    display: flex;
+    gap: 1rem;
+    margin: 1.5rem 0 0 0;
+    align-items: stretch;
+    justify-content: center;
+}
+.stat-card {
+    flex: 1 1 320px;
+    max-width: 420px;
+    background-color: rgba(255,255,255,0.03);
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-title {
+    margin: 0 0 0.5rem 0;
+    color: #ddd;
+}
+
+#scoreChart{
+    min-width: 320px;
+    width: 100%;
+    height: auto;
+    display: block;
+}
+#levelsChart{
+    min-width: 320px;
+    width: 100%;
+    height: auto;
+    display: block;
+}
+@media (max-width: 900px) {
+    .profile-container { flex-direction: column; align-items: center; }
+    .profile-card, .profile-stats { flex: 0 0 auto; width: 100%; max-width: 720px; }
+    .profile-card { margin-left: 0; }
 }
 .profile-bio-section {
     margin: 1.5rem 0;
