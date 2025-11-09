@@ -23,13 +23,6 @@ type TemplateData struct {
 	LevelNum          string
 	UserEmail         string
 	SrcHint           template.HTML
-
-	Name 			  string
-	Bio 			  string
-	Img               string
-	IsOwnProfile	  bool
-	BioPublic 		  bool
-	ShowBio			  bool
 }
 
 func InitTemplates() error {
