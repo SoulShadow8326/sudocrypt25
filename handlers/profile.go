@@ -4,12 +4,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	htmltmpl "html/template"
 	"net/http"
 	"net/url"
 	"strings"
 
 	dbpkg "sudocrypt25/db"
+	templSys "sudocrypt25/template"
 )
 
 func UpdateBioHandler(dbConn *sql.DB) http.HandlerFunc {
@@ -123,27 +123,18 @@ func UserProfileHandler(dbConn *sql.DB) http.HandlerFunc {
 			userImg = fmt.Sprintf("https://api.dicebear.com/9.x/big-smile/svg?seed=%s", email)
 		}
 
-		data := map[string]interface{}{
-			"Name":            displayName,
-			"Email":           email,
-			"Bio":             userBio,
-			"Img":             userImg,
-			"IsOwnProfile":    isOwnProfile,
-			"BioPublic":       bioPublic,
-			"ShowBio":         showBio,
-			"PageTitle":       fmt.Sprintf("%s - Profile", displayName),
-			"IsAuthenticated": true,
+		data := templSys.TemplateData{
+			Name:            displayName, //add
+			UserEmail:           email, //change
+			Bio:             userBio,  //add
+			Img:             userImg,  //add
+			IsOwnProfile:    isOwnProfile, //add
+			BioPublic:       bioPublic, //add
+			ShowBio:         showBio, //add
+			PageTitle:       fmt.Sprintf("%s - Profile", displayName),
+			IsAuthenticated: true,
 		}
 
-		tmpl, err := htmltmpl.ParseFiles("components/profile/profile.html", "components/header/header.html", "components/footer/footer.html")
-		if err != nil {
-			http.Error(w, "template error", http.StatusInternalServerError)
-			return
-		}
-
-		if err := tmpl.ExecuteTemplate(w, "profile", data); err != nil {
-			http.Error(w, "template error", http.StatusInternalServerError)
-			return
-		}
+		templSys.RenderTemplate(w, "profile", data)
 	}
 }
