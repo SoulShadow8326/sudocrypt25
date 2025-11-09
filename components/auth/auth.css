@@ -126,7 +126,8 @@ body {
 	}
 }
 
-.auth-input {
+.auth-input{
+	resize: none;
 	width: 100%;
 	background: transparent;
 	padding: 0.5rem 0;

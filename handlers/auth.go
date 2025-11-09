@@ -155,6 +155,7 @@ func ApiAuthHandler(dbConn *sql.DB) http.HandlerFunc {
 		password := q.Get("password")
 		ph := q.Get("phonenumber")
 		name := q.Get("name")
+		bio := q.Get("bio")
 		otp := q.Get("otp")
 		if method == "signup" {
 			if email == "" || otp == "" {
@@ -205,9 +206,15 @@ func ApiAuthHandler(dbConn *sql.DB) http.HandlerFunc {
 				json.NewEncoder(w).Encode(map[string]string{"error": "account exists"})
 				return
 			}
+			/*
 			user := map[string]interface{}{"email": email, "name": name, "phonenumber": ph, "password": hashHex(password), "created_at": time.Now().Unix()}
 			b, _ := json.Marshal(user)
 			err = db.Set(dbConn, "registration", email, string(b))
+			*/
+			reg := map[string]string{"email": email, "name": name, "phonenumber": ph, "password": hashHex(password), "bio": bio}
+			rb, _ := json.Marshal(reg)
+			db.Set(dbConn, "registration", email, string(rb))
+
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				json.NewEncoder(w).Encode(map[string]string{"error": "db error"})
@@ -219,10 +226,7 @@ func ApiAuthHandler(dbConn *sql.DB) http.HandlerFunc {
 			emailCookie := &http.Cookie{Name: "email", Value: email, Path: "/", HttpOnly: true}
 			http.SetCookie(w, emailCookie)
 			db.Set(dbConn, "emails", email, fmt.Sprintf("%d", time.Now().Unix()))
-			reg := map[string]string{"email": email, "name": name, "phonenumber": ph, "password": hashHex(password)}
-			rb, _ := json.Marshal(reg)
-			db.Set(dbConn, "registration", email, string(rb))
-			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+				json.NewEncoder(w).Encode(map[string]bool{"success": true})
 			lb := map[string]interface{}{"email": email, "time": float64(time.Now().Unix()), "points": 0, "name": name}
 			lbB, _ := json.Marshal(lb)
 			db.Set(dbConn, "leaderboard", email, string(lbB))
