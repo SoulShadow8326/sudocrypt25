@@ -98,6 +98,7 @@ func GenerateLeaderboardHTML(dbConn *sql.DB) (string, error) {
 		item = strings.ReplaceAll(item, "{name}", template.HTMLEscapeString(e.Name))
 		item = strings.ReplaceAll(item, "{level}", level)
 		item = strings.ReplaceAll(item, "{email_text}", emailText)
+		item = strings.ReplaceAll(item, "{email}", template.HTMLEscapeString(e.Email))
 		sb.WriteString(item)
 	}
 	return sb.String(), nil

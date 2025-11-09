@@ -50,7 +50,7 @@
 </body>
 
 <script>
-    function dialog(id, selected, state, name) {
+    function dialog(id, selected, state, identifier, name) {
 		/*
         let modal = document.getElementById(`dialog_${selected}_${id}`);
         if (state == "open") {
@@ -61,7 +61,8 @@
             modal.close();
         }
 		*/
-		window.location.href = "user/" + encodeURIComponent( name ); //also why is the check for name being unique hpning only when opt sent??
+        var target = identifier && identifier.indexOf('@') !== -1 ? identifier : (name && name.indexOf('@') !== -1 ? name : identifier);
+        window.location.href = "profile/" + encodeURIComponent( target );
     }
 </script>
 

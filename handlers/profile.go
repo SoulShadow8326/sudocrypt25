@@ -6,6 +6,7 @@ import (
 	"fmt"
 	htmltmpl "html/template"
 	"net/http"
+	"net/url"
 	"strings"
 
 	dbpkg "sudocrypt25/db"
@@ -40,7 +41,7 @@ func UpdateBioHandler(dbConn *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		acctRaw, err := dbpkg.Get(dbConn, "accounts", email)
+		acctRaw, err := dbpkg.Get(dbConn, "users", email)
 		if err != nil {
 			http.Error(w, "Account not found", http.StatusNotFound)
 			return
@@ -56,7 +57,7 @@ func UpdateBioHandler(dbConn *sql.DB) http.HandlerFunc {
 		acct["bio_public"] = req.BioPublic
 
 		acctBytes, _ := json.Marshal(acct)
-		if err := dbpkg.Set(dbConn, "accounts", email, string(acctBytes)); err != nil {
+		if err := dbpkg.Set(dbConn, "users", email, string(acctBytes)); err != nil {
 			http.Error(w, "Failed to update", http.StatusInternalServerError)
 			return
 		}
@@ -77,33 +78,11 @@ func UserProfileHandler(dbConn *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		userName := strings.TrimPrefix(r.URL.Path, "/user/")
-		userName = strings.TrimSpace(userName)
+		ident := strings.TrimPrefix(r.URL.Path, "/profile/")
+		ident = strings.TrimSpace(ident)
+		email, _ := url.PathUnescape(ident)
 
-		allAccounts, err := dbpkg.GetAll(dbConn, "accounts")
-		if err != nil {
-			http.Error(w, "Error loading users", http.StatusInternalServerError)
-			return
-		}
-
-		var email string
-		for userEmail, acctData := range allAccounts {
-			var tempAcct map[string]interface{}
-			if err := json.Unmarshal([]byte(acctData), &tempAcct); err != nil {
-				continue
-			}
-			if name, ok := tempAcct["name"].(string); ok && name == userName {
-				email = userEmail
-				break
-			}
-		}
-
-		if email == "" {
-			http.Error(w, "User not found", http.StatusNotFound)
-			return
-		}
-
-		acctRaw, err := dbpkg.Get(dbConn, "accounts", email)
+		acctRaw, err := dbpkg.Get(dbConn, "users", email)
 		if err != nil {
 			http.Error(w, "User not found", http.StatusNotFound)
 			return
@@ -133,32 +112,36 @@ func UserProfileHandler(dbConn *sql.DB) http.HandlerFunc {
 		}
 
 		showBio := isOwnProfile || bioPublic
+		displayName := ""
+		if n, ok := acct["name"].(string); ok {
+			displayName = n
+		}
 		userImg := ""
-		if userName != "" {
-			userImg = fmt.Sprintf("https://api.dicebear.com/9.x/big-smile/svg?seed=%s", userName)
+		if displayName != "" {
+			userImg = fmt.Sprintf("https://api.dicebear.com/9.x/big-smile/svg?seed=%s", displayName)
 		} else {
 			userImg = fmt.Sprintf("https://api.dicebear.com/9.x/big-smile/svg?seed=%s", email)
 		}
 
 		data := map[string]interface{}{
-			"Name":            userName,
+			"Name":            displayName,
 			"Email":           email,
 			"Bio":             userBio,
 			"Img":             userImg,
 			"IsOwnProfile":    isOwnProfile,
 			"BioPublic":       bioPublic,
 			"ShowBio":         showBio,
-			"PageTitle":       fmt.Sprintf("%s - Profile", userName),
+			"PageTitle":       fmt.Sprintf("%s - Profile", displayName),
 			"IsAuthenticated": true,
 		}
 
-		tmpl, err := htmltmpl.ParseFiles("components/user/profile.html", "components/header/header.html", "components/footer/footer.html")
+		tmpl, err := htmltmpl.ParseFiles("components/profile/profile.html", "components/header/header.html", "components/footer/footer.html")
 		if err != nil {
 			http.Error(w, "template error", http.StatusInternalServerError)
 			return
 		}
 
-		if err := tmpl.ExecuteTemplate(w, "user_profile", data); err != nil {
+		if err := tmpl.ExecuteTemplate(w, "profile", data); err != nil {
 			http.Error(w, "template error", http.StatusInternalServerError)
 			return
 		}

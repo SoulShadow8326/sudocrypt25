@@ -21,7 +21,7 @@
 }
 </style>
 
-<div onclick="dialog('{rank}', 'main', 'open', '{name}')" class="card-item">
+<div onclick="dialog('{rank}', 'main', 'open', '{email}', '{name}')" class="card-item">
   <div class="card-left">
     <p class="card-rank">{rank}.</p>
     <p class="card-name">{name}</p>
@@ -36,7 +36,7 @@
     <div class="dialog-details">
       <h1 class="dialog-name">{name}</h1>
   <p class="dialog-meta">Rank: {rank} • Points: {email_text}{level}</p>
-      <button onclick="dialog('{rank}', 'main', 'close', '{name}')" class="dialog-close">Close</button>
+  <button onclick="dialog('{rank}', 'main', 'close', '{email}', '{name}')" class="dialog-close">Close</button>
     </div>
   </div>
 </dialog>
