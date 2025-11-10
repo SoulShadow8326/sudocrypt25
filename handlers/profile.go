@@ -70,7 +70,7 @@ func UpdateBioHandler(dbConn *sql.DB) http.HandlerFunc {
 	}
 }
 
-func UserProfileHandler(dbConn *sql.DB) http.HandlerFunc {
+func UserProfileHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("session_id")
 		if err != nil || c.Value == "" {
@@ -148,6 +148,7 @@ func UserProfileHandler(dbConn *sql.DB) http.HandlerFunc {
 			"ScorePoints":     nil,
 			"PageTitle":       fmt.Sprintf("%s - Profile", displayName),
 			"IsAuthenticated": true,
+			"Admin": 		   admins.IsAdmin(email),
 		}
 
 		logsMap, _ := dbpkg.GetAll(dbConn, "logs")

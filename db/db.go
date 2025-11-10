@@ -8,12 +8,19 @@ import (
 	"time"
 )
 
+//sort
+//init
+
 func InitDB(d *sql.DB) error {
 	schema := `
 CREATE TABLE IF NOT EXISTS users (
 	email TEXT PRIMARY KEY,
 	data TEXT,
 	created_at INTEGER
+);
+CREATE TABLE IF NOT EXISTS attempt_logs ( 
+	email TEXT PRIMARY KEY,
+	logs TEXT
 );
 CREATE TABLE IF NOT EXISTS pending_signups (
 	email TEXT PRIMARY KEY,
@@ -106,6 +113,9 @@ func Set(d *sql.DB, namespace, key, value string) error {
 	case "announcements":
 		_, err := d.Exec(`INSERT OR REPLACE INTO announcements(id, data, created_at) VALUES(?,?,?)`, key, value, now)
 		return err
+	case "attempt_logs":
+		_, err := d.Exec(`INSERT OR REPLACE INTO attempt_logs(email, logs) VALUES(?,?)`, key, value)
+		return err
 	case "hints":
 		parts := strings.SplitN(key, "/", 2)
 		if len(parts) != 2 {
@@ -180,6 +190,8 @@ func Get(d *sql.DB, namespace, key string) (string, error) {
 		query = `SELECT data FROM levels WHERE id = ?`
 	case "announcements":
 		query = `SELECT data FROM announcements WHERE id = ?`
+	case "attempt_logs":
+		query = `SELECT logs FROM attempt_logs WHERE email = ?`
 	case "hints":
 		rows, err := d.Query(`SELECT hint_id, data FROM hints WHERE level_id = ? ORDER BY created_at ASC`, key)
 		if err != nil {
@@ -270,6 +282,9 @@ func Delete(d *sql.DB, namespace, key string) error {
 	case "announcements":
 		_, err := d.Exec(`DELETE FROM announcements WHERE id = ?`, key)
 		return err
+	case "attempt_logs":
+		_, err := d.Exec(`DELETE FROM attempt_logs WHERE email = ?`, key)
+		return err
 	case "hints":
 		parts := strings.SplitN(key, "/", 2)
 		if len(parts) != 2 {
@@ -309,6 +324,8 @@ func GetAll(d *sql.DB, namespace string) (map[string]string, error) {
 		rows, err = d.Query(`SELECT id, namespace, key, event, data, created_at FROM logs ORDER BY created_at ASC`)
 	case "hints":
 		rows, err = d.Query(`SELECT level_id || '/' || hint_id as key, data FROM hints ORDER BY created_at ASC`)
+	case "attempt_logs":
+		rows, err = d.Query(`SELECT email, logs FROM attempt_logs`)
 	default:
 		return res, nil
 	}

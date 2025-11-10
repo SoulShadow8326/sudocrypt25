@@ -96,10 +96,21 @@
             <canvas id="levelsChart" width="200" height="200"></canvas>
         </div>
     </div>
-    </div>
+
+	{{if .Admin}}
+	<div class="attempt_logs_container">
+		<p class="admin_h">Admin Preview</p>
+		<div class="logs">
+			<div class="log">
+				<p>1. 3:41pm</p>
+				<p>ctf</p>
+				<p class="log_el">You should not be able to see this message. Reload.</p>
+			</div>
+		</div>
+	</div>
+	{{end}}
 
     <script src="/components/profile/profile.js"></script>
-
     {{template "footer" .}}
 </body>
 </html>

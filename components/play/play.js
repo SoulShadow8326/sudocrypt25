@@ -145,6 +145,9 @@ async function submitAnswer() {
         const params = new URLSearchParams((new URL(window.location.href)).search);
         const type = params.get('type') || 'cryptic';
         let ansRaw = input.value;
+
+		await post_log(type, ansRaw);
+
         if (type === 'cryptic') {
             const v = ansRaw.trim().toLowerCase();
             if (v === '') return;
@@ -194,3 +197,42 @@ async function submitAnswer() {
 }
 
 window.submit = submitAnswer;
+
+async function post_log(type, ans){
+	try{
+		const response = await fetch('/api/attempt_logs', {
+			method: 'POST',
+			credentials: 'include',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				type: type,
+				logs: ans
+			})
+		});
+		if (!response.ok) {
+			console.error('Error adding attempt_log!');	
+		}
+	}catch(error){
+        console.error('Error fetching attempt logs:', error);
+	}
+}
+
+function getCookie(name) {
+	const nameEQ = name + "=";
+	const decodedCookie = decodeURIComponent(document.cookie);
+	const ca = decodedCookie.split(';');
+
+	for (let i = 0; i < ca.length; i++) {
+		let c = ca[i];
+		while (c.charAt(0) === ' ') {
+			c = c.substring(1);
+		}
+		if (c.indexOf(nameEQ) === 0) {
+			return c.substring(nameEQ.length, c.length);
+		}
+	}
+	return null; 
+}
+

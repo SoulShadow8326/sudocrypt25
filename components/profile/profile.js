@@ -1,6 +1,7 @@
 const container = document.querySelector('.profile-stats-row');
 const chartCryptic = parseFloat(container?.dataset.levelsCryptic || '0');
 const chartCtf = parseFloat(container?.dataset.levelsCtf || '0');
+
 (function(){
 	const s = document.createElement('script');
 	s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
@@ -122,3 +123,136 @@ window.enterEditMode = enterEditMode;
 window.cancelEdit = cancelEdit;
 window.saveBio = saveBio;
 
+let pollingInterval = null;
+
+async function fetchAttemptLogs() {
+    try {
+        const response = await fetch('/api/attempt_logs', {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            console.error('Failed to fetch logs:', response.status);
+            return;
+        }
+
+        const result = await response.json();
+        
+        if (typeof result.data !== 'string') {
+            console.error('Invalid data format');
+            return;
+        }
+
+        displayLogs(result.data);
+    } catch (error) {
+        console.error('Error fetching attempt logs:', error);
+    }
+}
+
+function formatTime(unixTimestamp) {
+    const date = new Date(unixTimestamp * 1000);
+    const hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    const displayHours = hours % 12 || 12;
+    
+    return `${displayHours}:${minutes}${ampm}`;
+}
+
+function displayLogs(logsString) {
+    const logsContainer = document.querySelector('.logs');
+    
+    if (!logsContainer) {
+        console.error('Logs container not found');
+        return;
+    }
+
+    logsContainer.innerHTML = '';
+
+    const trimmed = logsString.trim();
+    if (!trimmed) {
+        logsContainer.innerHTML = '<p class="empty-logs">No attempt logs yet.</p>';
+        return;
+    }
+
+    const logs = trimmed.split(/\s+/).filter(entry => entry.length > 0);
+
+    logs.forEach((logEntry, index) => {
+        const parts = logEntry.split('-');
+        
+        if (parts.length < 3) {
+            console.warn('Invalid log format:', logEntry);
+            return;
+        }
+
+        const timeStr = parts[parts.length - 1];
+        const typpe = parts[parts.length - 2];
+        const attempt = parts.slice(0, parts.length - 2).join('-');
+        
+        const unixTime = parseInt(timeStr, 10);
+        
+        if (isNaN(unixTime)) {
+            console.warn('Invalid timestamp:', timeStr);
+            return;
+        }
+
+        const formattedTime = formatTime(unixTime);
+
+        const logDiv = document.createElement('div');
+        logDiv.className = 'log';
+
+        const timePara = document.createElement('p');
+        timePara.textContent = `${index + 1}. ${formattedTime}`;
+
+        const xPara = document.createElement('p');
+        xPara.textContent = typpe;
+
+        const attemptPara = document.createElement('p');
+        attemptPara.className = 'log_el';
+        attemptPara.textContent = attempt;
+
+        logDiv.appendChild(timePara);
+        logDiv.appendChild(xPara);
+        logDiv.appendChild(attemptPara);
+
+        logsContainer.appendChild(logDiv);
+    });
+}
+
+function startPolling() {
+    fetchAttemptLogs();
+    
+    pollingInterval = setInterval(() => {
+        fetchAttemptLogs();
+    }, 5000);
+}
+
+function stopPolling() {
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const logsContainer = document.querySelector('.attempt_logs_container');
+    if (logsContainer) {
+        startPolling();
+    }
+});
+
+document.addEventListener('visibilitychange', () => {
+    const logsContainer = document.querySelector('.attempt_logs_container');
+    if (!logsContainer) return;
+    
+    if (document.hidden) {
+        stopPolling();
+    } else {
+        startPolling();
+    }
+});
+
+window.addEventListener('beforeunload', () => {
+    stopPolling();
+});
