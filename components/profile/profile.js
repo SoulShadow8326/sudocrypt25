@@ -124,6 +124,7 @@ window.cancelEdit = cancelEdit;
 window.saveBio = saveBio;
 
 let pollingInterval = null;
+let allLogs = [];
 
 async function fetchAttemptLogs() {
     try {
@@ -144,7 +145,8 @@ async function fetchAttemptLogs() {
             return;
         }
 
-        displayLogs(result.data);
+        parseLogs(result.data);
+        applyFilters();
     } catch (error) {
         console.error('Error fetching attempt logs:', error);
     }
@@ -160,25 +162,17 @@ function formatTime(unixTimestamp) {
     return `${displayHours}:${minutes}${ampm}`;
 }
 
-function displayLogs(logsString) {
-    const logsContainer = document.querySelector('.logs');
+function parseLogs(logsString) {
+    allLogs = [];
     
-    if (!logsContainer) {
-        console.error('Logs container not found');
-        return;
-    }
-
-    logsContainer.innerHTML = '';
-
     const trimmed = logsString.trim();
     if (!trimmed) {
-        logsContainer.innerHTML = '<p class="empty-logs">No attempt logs yet.</p>';
         return;
     }
 
     const logs = trimmed.split(/\s+/).filter(entry => entry.length > 0);
 
-    logs.forEach((logEntry, index) => {
+    logs.forEach((logEntry) => {
         const parts = logEntry.split('-');
         
         if (parts.length < 3) {
@@ -197,20 +191,77 @@ function displayLogs(logsString) {
             return;
         }
 
-        const formattedTime = formatTime(unixTime);
+        allLogs.push({
+            time: unixTime,
+            formattedTime: formatTime(unixTime),
+            type: typpe,
+            attempt: attempt
+        });
+    });
+}
 
+function applyFilters() {
+    const filterInput = document.querySelector('.filter_input');
+    const filterSelect = document.getElementById('choices');
+    
+    if (!filterInput || !filterSelect) {
+        displayLogs(allLogs);
+        return;
+    }
+    
+    const searchTerm = filterInput.value.toLowerCase().trim();
+    const filterType = filterSelect.value;
+    
+    let filtered = [...allLogs];
+    
+    if (searchTerm) {
+        filtered = filtered.filter(log => {
+            switch(filterType) {
+                case 'opt2':
+                    return log.formattedTime.toLowerCase().includes(searchTerm);
+                case 'opt3':
+                    return log.type.toLowerCase().includes(searchTerm);
+                case 'opt4':
+                    return log.attempt.toLowerCase().includes(searchTerm);
+                default:
+                    return log.formattedTime.toLowerCase().includes(searchTerm) ||
+                           log.type.toLowerCase().includes(searchTerm) ||
+                           log.attempt.toLowerCase().includes(searchTerm);
+            }
+        });
+    }
+    
+    displayLogs(filtered);
+}
+
+function displayLogs(logs) {
+    const logsContainer = document.querySelector('.logs');
+    
+    if (!logsContainer) {
+        console.error('Logs container not found');
+        return;
+    }
+
+    logsContainer.innerHTML = '';
+
+    if (logs.length === 0) {
+        logsContainer.innerHTML = '<p class="empty-logs">No attempt logs found.</p>';
+        return;
+    }
+
+    logs.forEach((log, index) => {
         const logDiv = document.createElement('div');
         logDiv.className = 'log';
 
         const timePara = document.createElement('p');
-        timePara.textContent = `${index + 1}. ${formattedTime}`;
+        timePara.textContent = `${index + 1}. ${log.formattedTime}`;
 
         const xPara = document.createElement('p');
-        xPara.textContent = typpe;
+        xPara.textContent = log.type;
 
         const attemptPara = document.createElement('p');
         attemptPara.className = 'log_el';
-        attemptPara.textContent = attempt;
+        attemptPara.textContent = log.attempt;
 
         logDiv.appendChild(timePara);
         logDiv.appendChild(xPara);
@@ -239,6 +290,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const logsContainer = document.querySelector('.attempt_logs_container');
     if (logsContainer) {
         startPolling();
+        
+        const filterInput = document.querySelector('.filter_input');
+        const filterSelect = document.getElementById('choices');
+        
+        if (filterInput) {
+            filterInput.addEventListener('input', applyFilters);
+        }
+        
+        if (filterSelect) {
+            filterSelect.addEventListener('change', applyFilters);
+        }
     }
 });
 

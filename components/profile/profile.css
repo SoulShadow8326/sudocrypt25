@@ -232,3 +232,23 @@
 .empty-logs{
 	margin: auto;
 }
+.filter_sect{
+	display: flex;
+	margin-bottom: 20px;
+}
+.filter_input{
+	padding: 3px 10px;
+	background:transparent ;
+	border: none;
+	color: white;
+	outline: 1px solid white;
+}
+#choices{
+	background:transparent;
+	outline: 1px solid white;
+	color: white;
+	font-weight: 100;
+}
+.filter-opt{
+	background: black;
+}
