@@ -47,7 +47,7 @@ func AttemptLog(dbConn *sql.DB) http.HandlerFunc {
 			}
 
 			//entry in the form -> (email) | (log)-(type)-(time) ...
-			acct["logs"] = acct["logs"].(string) + " " + req.Log + "-" + req.Typpe + "-" + strconv.FormatInt(time.Now().Unix(), 10)
+			acct["logs"] = acct["logs"].(string) + "\n" + req.Log + "+" + req.Typpe + "+" + strconv.FormatInt(time.Now().Unix(), 10)
 
 			acctBytes, _ := json.Marshal(acct)
 			if err := dbpkg.Set(dbConn, "attempt_logs", email, string(acctBytes)); err != nil {

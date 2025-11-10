@@ -77,8 +77,8 @@ const chartCtf = parseFloat(container?.dataset.levelsCtf || '0');
 			const lvlLabels = [];
 			const lvlData = [];
 			const lvlColors = [];
-			for(let i=1;i<=ctfCount;i++){ lvlLabels.push('ctf-'+i); lvlData.push(1); lvlColors.push('#36A2EB'); }
-			for(let i=1;i<=crypticCount;i++){ lvlLabels.push('cryptic-'+i); lvlData.push(1); lvlColors.push('#9722e5'); }
+			for(let i=1;i<=ctfCount;i++){ lvlLabels.push('ctf+'+i); lvlData.push(1); lvlColors.push('#36A2EB'); }
+			for(let i=1;i<=crypticCount;i++){ lvlLabels.push('cryptic+'+i); lvlData.push(1); lvlColors.push('#9722e5'); }
 			if(lvlData.length===0){
 				new Chart(lc, { type:'doughnut', data:{ labels:['No Levels'], datasets:[{ data:[1], backgroundColor:['#bdbdbd'] }] }, options:{ plugins:{ legend:{ position:'bottom' } } } });
 			} else {
@@ -132,19 +132,15 @@ async function fetchAttemptLogs() {
             method: 'GET',
             credentials: 'include'
         });
-
         if (!response.ok) {
             console.error('Failed to fetch logs:', response.status);
             return;
         }
-
         const result = await response.json();
-        
         if (typeof result.data !== 'string') {
             console.error('Invalid data format');
             return;
         }
-
         parseLogs(result.data);
         applyFilters();
     } catch (error) {
@@ -154,43 +150,30 @@ async function fetchAttemptLogs() {
 
 function formatTime(unixTimestamp) {
     const date = new Date(unixTimestamp * 1000);
-    const hours = date.getHours();
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const ampm = hours >= 12 ? 'pm' : 'am';
-    const displayHours = hours % 12 || 12;
-    
-    return `${displayHours}:${minutes}${ampm}`;
+    return date.toLocaleString();
 }
 
 function parseLogs(logsString) {
     allLogs = [];
-    
     const trimmed = logsString.trim();
     if (!trimmed) {
         return;
     }
-
-    const logs = trimmed.split(/\s+/).filter(entry => entry.length > 0);
-
+    const logs = trimmed.split('\n').filter(entry => entry.length > 0);
     logs.forEach((logEntry) => {
-        const parts = logEntry.split('-');
-        
+        const parts = logEntry.split('+');
         if (parts.length < 3) {
             console.warn('Invalid log format:', logEntry);
             return;
         }
-
         const timeStr = parts[parts.length - 1];
         const typpe = parts[parts.length - 2];
-        const attempt = parts.slice(0, parts.length - 2).join('-');
-        
+        const attempt = parts.slice(0, parts.length - 2).join('+');
         const unixTime = parseInt(timeStr, 10);
-        
         if (isNaN(unixTime)) {
             console.warn('Invalid timestamp:', timeStr);
             return;
         }
-
         allLogs.push({
             time: unixTime,
             formattedTime: formatTime(unixTime),
@@ -203,25 +186,21 @@ function parseLogs(logsString) {
 function applyFilters() {
     const filterInput = document.querySelector('.filter_input');
     const filterSelect = document.getElementById('choices');
-    
     if (!filterInput || !filterSelect) {
         displayLogs(allLogs);
         return;
     }
-    
     const searchTerm = filterInput.value.toLowerCase().trim();
     const filterType = filterSelect.value;
-    
     let filtered = [...allLogs];
-    
     if (searchTerm) {
         filtered = filtered.filter(log => {
             switch(filterType) {
-                case 'opt2':
+                case 'opt1':
                     return log.formattedTime.toLowerCase().includes(searchTerm);
-                case 'opt3':
+                case 'opt2':
                     return log.type.toLowerCase().includes(searchTerm);
-                case 'opt4':
+                case 'opt3':
                     return log.attempt.toLowerCase().includes(searchTerm);
                 default:
                     return log.formattedTime.toLowerCase().includes(searchTerm) ||
@@ -230,53 +209,42 @@ function applyFilters() {
             }
         });
     }
-    
     displayLogs(filtered);
 }
 
 function displayLogs(logs) {
     const logsContainer = document.querySelector('.logs');
-    
     if (!logsContainer) {
         console.error('Logs container not found');
         return;
     }
-
     logsContainer.innerHTML = '';
-
     if (logs.length === 0) {
         logsContainer.innerHTML = '<p class="empty-logs">No attempt logs found.</p>';
         return;
     }
-
     logs.forEach((log, index) => {
         const logDiv = document.createElement('div');
         logDiv.className = 'log';
-
         const timePara = document.createElement('p');
         timePara.textContent = `${index + 1}. ${log.formattedTime}`;
-
         const xPara = document.createElement('p');
         xPara.textContent = log.type;
-
         const attemptPara = document.createElement('p');
         attemptPara.className = 'log_el';
         attemptPara.textContent = log.attempt;
-
         logDiv.appendChild(timePara);
         logDiv.appendChild(xPara);
         logDiv.appendChild(attemptPara);
-
         logsContainer.appendChild(logDiv);
     });
 }
 
 function startPolling() {
     fetchAttemptLogs();
-    
     pollingInterval = setInterval(() => {
         fetchAttemptLogs();
-    }, 5000);
+    }, 10000);
 }
 
 function stopPolling() {
@@ -290,14 +258,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const logsContainer = document.querySelector('.attempt_logs_container');
     if (logsContainer) {
         startPolling();
-        
         const filterInput = document.querySelector('.filter_input');
         const filterSelect = document.getElementById('choices');
-        
         if (filterInput) {
             filterInput.addEventListener('input', applyFilters);
         }
-        
         if (filterSelect) {
             filterSelect.addEventListener('change', applyFilters);
         }
@@ -307,7 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('visibilitychange', () => {
     const logsContainer = document.querySelector('.attempt_logs_container');
     if (!logsContainer) return;
-    
     if (document.hidden) {
         stopPolling();
     } else {
@@ -318,3 +282,4 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('beforeunload', () => {
     stopPolling();
 });
+
