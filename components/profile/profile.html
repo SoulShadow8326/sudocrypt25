@@ -79,22 +79,6 @@
                 {{end}}
             </div>
         </div>
-        <div class="profile-line">
-            <div class="profile-line-card">
-                <canvas id="scoreTimeChart" width="400" height="200"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <div class="profile-stats-row" data-levels-cryptic="{{.LevelsCryptic}}" data-levels-ctf="{{.LevelsCTF}}" data-score-times='{{.ScoreTimesJSON}}' data-score-points='{{.ScorePointsJSON}}'>
-        <div class="stat-card">
-            <h3 class="stat-title">Score Breakdown</h3>
-            <canvas id="scoreChart" width="200" height="200"></canvas>
-        </div>
-        <div class="stat-card">
-            <h3 class="stat-title">Completed Levels</h3>
-            <canvas id="levelsChart" width="200" height="200"></canvas>
-        </div>
     </div>
 
 	{{if .Admin}}

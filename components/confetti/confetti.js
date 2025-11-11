@@ -187,7 +187,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     new Promise(function (resolve) {
                         setTimeout(() => {
                             document.querySelector("#random div").style.position = "static";
-                            //setCookie("showConfetti", "false");
+                            setCookie("showConfetti", "false");
 							document.querySelector(".site-footer").style.opacity = 0
                             resolve();
                         }, Math.min(Math.max(window.innerHeight, 818), 882) * (6/10)) //trust.
