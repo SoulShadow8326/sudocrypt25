@@ -41,47 +41,17 @@ function renderMarkup(markup) {
 }
 
 async function initPlay() {
-    try {
-        const levelsResp = await fetch('/api/levels', { credentials: 'same-origin' });
-        if (!levelsResp.ok) {
-            console.warn('[play.js] levels list fetch failed', levelsResp.status);
-        } else {
-            const levels = await levelsResp.json();
-            if (!Array.isArray(levels) || levels.length === 0) {
-                const level_title = document.getElementById("level_title");
-                if (level_title) level_title.style.display = 'none';
-                renderMarkup('<p><em>No levels are available currently. Please check back later.</em></p>');
-                const input = document.getElementById('messageInput');
-                const sendBtn = document.getElementById('sendButton');
-                if (input) input.disabled = true;
-                if (sendBtn) sendBtn.disabled = true;
-                const chat = document.getElementById('chatToggleBtn');
-                if (chat) chat.style.display = 'none';
-                return;
-            }
-        }
-    } catch (err) {
-        console.error('[play.js] error fetching levels list', err);
-    }
-
     const lvl = await fetchCurrentLevel();
+    
+    let isValidLevel = lvl && lvl.id && lvl.id !== "";
+    
     if (lvl) {
         renderMarkup(lvl.markup || markupHTML || '');
-        try {
-            const input = document.getElementById('messageInput');
-            const sendBtn = document.getElementById('sendButton');
-            if (typeof lvl.LeadsEnabled !== 'undefined' && lvl.LeadsEnabled === false) {
-                if (input) input.disabled = true;
-                if (sendBtn) sendBtn.disabled = true;
-            } else {
-                if (input) input.disabled = false;
-                if (sendBtn) sendBtn.disabled = false;
-            }
-            window.__leadsEnabledForCurrentLevel = (typeof lvl.LeadsEnabled === 'undefined') ? true : !!lvl.LeadsEnabled
-        } catch (e) {}
+        window.__currentLevelId = lvl.id;
+        
         try {
             var titleEl = document.querySelector('.title');
-            if (titleEl && lvl.id) {
+            if (titleEl && lvl.id && lvl.id !== "") {
                 var parts = lvl.id.split('-');
                 if (parts.length === 2) {
                     var num = parts[1];
@@ -93,10 +63,67 @@ async function initPlay() {
         } catch (e) {
             console.warn('[play.js] failed to update title', e);
         }
-        window.__currentLevelId = lvl.id;
     }
-    const lb = await fetchLeaderboard();
-    if (lb) {
+    
+    let shouldDisableInput = false;
+    
+    try {
+        const levelsResp = await fetch('/api/levels', { credentials: 'same-origin' });
+        if (!levelsResp.ok) {
+            console.warn('[play.js] levels list fetch failed', levelsResp.status);
+            shouldDisableInput = true; 
+        } else {
+            const levels = await levelsResp.json();
+            if (!Array.isArray(levels) || 
+                levels.length === 0 || 
+                !window.__currentLevelId || 
+                window.__currentLevelId === "" || 
+                !levels.includes(window.__currentLevelId)) {
+                
+                shouldDisableInput = true;
+                
+                const level_title = document.getElementById("level_title");
+                if (level_title) level_title.style.display = 'none';
+                
+                renderMarkup('<p><em>No levels are available currently. Please check back later.</em></p>');
+                
+                const chat = document.getElementById('chatToggleBtn');
+                if (chat) chat.style.display = 'none';
+            }
+        }
+    } catch (err) {
+        shouldDisableInput = true; 
+    }
+    
+    try {
+        const input = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendButton');
+        
+        if (shouldDisableInput) {
+            if (input) {
+                input.disabled = true;
+                input.placeholder = 'No levels available';
+            }
+            if (sendBtn) sendBtn.disabled = true;
+            window.__leadsEnabledForCurrentLevel = false;
+        } else if (lvl && typeof lvl.leads_enabled !== 'undefined' && lvl.leads_enabled === false) {
+            console.log('[DEBUG] Disabling input (leads disabled)');
+            if (input) {
+                input.disabled = true;
+                input.placeholder = 'Submissions disabled';
+            }
+            if (sendBtn) sendBtn.disabled = true;
+            window.__leadsEnabledForCurrentLevel = false;
+        } else {
+            if (input) {
+                input.disabled = false;
+                input.placeholder = 'Enter your answer';
+            }
+            if (sendBtn) sendBtn.disabled = false;
+            window.__leadsEnabledForCurrentLevel = true;
+        }
+    } catch (e) {
+        console.error('[play.js] error setting input state', e);
     }
 
     try {
