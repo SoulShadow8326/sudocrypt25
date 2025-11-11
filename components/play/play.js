@@ -93,6 +93,7 @@ async function initPlay() {
         } catch (e) {
             console.warn('[play.js] failed to update title', e);
         }
+        window.__currentLevelId = lvl.id;
     }
     const lb = await fetchLeaderboard();
     if (lb) {
@@ -146,7 +147,9 @@ async function submitAnswer() {
         const type = params.get('type') || 'cryptic';
         let ansRaw = input.value;
 
-		await post_log(type, ansRaw);
+        const levelId = window.__currentLevelId || '';
+        const typeWithLevel = levelId ? levelId : type;
+        await post_log(typeWithLevel, ansRaw);
 
         if (type === 'cryptic') {
             const v = ansRaw.trim().toLowerCase();
@@ -235,4 +238,3 @@ function getCookie(name) {
 	}
 	return null; 
 }
-

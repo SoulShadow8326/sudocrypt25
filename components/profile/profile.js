@@ -190,22 +190,24 @@ function applyFilters() {
         displayLogs(allLogs);
         return;
     }
-    const searchTerm = filterInput.value.toLowerCase().trim();
+    const searchTerm = filterInput.value.trim(); 
     const filterType = filterSelect.value;
     let filtered = [...allLogs];
+    
     if (searchTerm) {
+        const lowerSearchTerm = searchTerm.toLowerCase();
         filtered = filtered.filter(log => {
             switch(filterType) {
-                case 'opt1':
-                    return log.formattedTime.toLowerCase().includes(searchTerm);
-                case 'opt2':
-                    return log.type.toLowerCase().includes(searchTerm);
-                case 'opt3':
-                    return log.attempt.toLowerCase().includes(searchTerm);
-                default:
-                    return log.formattedTime.toLowerCase().includes(searchTerm) ||
-                           log.type.toLowerCase().includes(searchTerm) ||
-                           log.attempt.toLowerCase().includes(searchTerm);
+                case 'opt1': 
+                    return log.formattedTime.toLowerCase().startsWith(lowerSearchTerm);
+                case 'opt2': 
+                    return log.type.toLowerCase().startsWith(lowerSearchTerm);
+                case 'opt3': 
+                    return log.attempt.toLowerCase().startsWith(lowerSearchTerm);
+                default: //no point butok
+                    return log.formattedTime.toLowerCase().startsWith(lowerSearchTerm) ||
+                           log.type.toLowerCase().startsWith(lowerSearchTerm) ||
+                           log.attempt.toLowerCase().startsWith(lowerSearchTerm);
             }
         });
     }
@@ -244,7 +246,7 @@ function startPolling() {
     fetchAttemptLogs();
     pollingInterval = setInterval(() => {
         fetchAttemptLogs();
-    }, 10000);
+    }, 60000);
 }
 
 function stopPolling() {
