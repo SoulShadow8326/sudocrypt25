@@ -24,7 +24,7 @@ type Level struct {
 	SourceHint   string `json:"sourcehint"`
 	PublicHash   string `json:"public_hash,omitempty"`
 	Walkthrough  string `json:"walkthrough,omitempty"`
-	LeadsEnabled bool   `json:"leads_enabled,omitempty"`
+	LeadsEnabled bool   `json:"leads_enabled"`
 }
 
 func isValidLevelID(id string) bool {
@@ -454,7 +454,7 @@ func CurrentLevelHandler(dbConn *sql.DB) http.HandlerFunc {
 		levelID := fmt.Sprintf("%s-%d", typ, curr)
 		lvl, err := GetLevel(dbConn, levelID)
 		if err != nil {
-			placeholder := &Level{ID: "", Markup: "<p>No further are levels available currently. Thankyou for playing!.</p>"}
+			placeholder := &Level{ID: "", Markup: "<p>No further are levels available currently. Thankyou for playing!.</p>", LeadsEnabled: false}
 			placeholder.Answer = ""
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(placeholder)

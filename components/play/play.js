@@ -49,6 +49,13 @@ async function initPlay() {
     if (lvl) {
         renderMarkup(lvl.markup || markupHTML || '');
         window.__currentLevelId = lvl.id;
+
+        try {
+            if (typeof lvl.leads_enabled !== 'undefined') {
+                window.__leadsEnabledForCurrentLevel = !!lvl.leads_enabled;
+            }
+        } catch (e) {
+        }
         
         try {
             var titleEl = document.querySelector('.title');
@@ -113,7 +120,11 @@ async function initPlay() {
                 input.placeholder = 'Enter your answer';
             }
             if (sendBtn) sendBtn.disabled = false;
-            window.__leadsEnabledForCurrentLevel = true;
+            if (typeof lvl !== 'undefined' && typeof lvl.leads_enabled !== 'undefined') {
+                window.__leadsEnabledForCurrentLevel = !!lvl.leads_enabled;
+            } else {
+                window.__leadsEnabledForCurrentLevel = true;
+            }
         }
     } catch (e) {
         console.error('[play.js] error setting input state', e);
