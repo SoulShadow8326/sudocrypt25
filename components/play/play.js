@@ -7,6 +7,7 @@ async function fetchCurrentLevel() {
             return null;
         }
         const data = await resp.json();
+		alert(JSON.stringify(data, null, 2));
         return data;
     } catch (err) {
         console.error('[play.js] error fetching current level', err);
@@ -103,14 +104,6 @@ async function initPlay() {
             if (input) {
                 input.disabled = true;
                 input.placeholder = 'No levels available';
-            }
-            if (sendBtn) sendBtn.disabled = true;
-            window.__leadsEnabledForCurrentLevel = false;
-        } else if (lvl && typeof lvl.leads_enabled !== 'undefined' && lvl.leads_enabled === false) {
-            console.log('[DEBUG] Disabling input (leads disabled)');
-            if (input) {
-                input.disabled = true;
-                input.placeholder = 'Submissions disabled';
             }
             if (sendBtn) sendBtn.disabled = true;
             window.__leadsEnabledForCurrentLevel = false;

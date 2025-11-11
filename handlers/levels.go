@@ -454,7 +454,7 @@ func CurrentLevelHandler(dbConn *sql.DB) http.HandlerFunc {
 		levelID := fmt.Sprintf("%s-%d", typ, curr)
 		lvl, err := GetLevel(dbConn, levelID)
 		if err != nil {
-			placeholder := &Level{ID: "", Markup: "<p>No level available currently. Please check back later.</p>"}
+			placeholder := &Level{ID: "", Markup: "<p>No further are levels available currently. Thankyou for playing!.</p>"}
 			placeholder.Answer = ""
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(placeholder)
