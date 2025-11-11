@@ -85,7 +85,7 @@ async function initPlay() {
                 const level_title = document.getElementById("level_title");
                 if (level_title) level_title.style.display = 'none';
                 
-                renderMarkup('<p><em>No levels are available currently. Please check back later.</em></p>');
+                renderMarkup('<p><em>No further levels are available currently. Thankyou for playing!</em></p>');
                 
                 const chat = document.getElementById('chatToggleBtn');
                 if (chat) chat.style.display = 'none';
