@@ -107,7 +107,6 @@ async function fetchMessages(checksum) {
 		if (!resp.ok) throw new Error("messages fetch failed: " + resp.status);
 		return await resp.json();
 	} catch (e) {
-		console.warn('[chat] fetchMessages error', e);
 		return { checksum, messages: null };
 	}
 }
@@ -324,9 +323,8 @@ async function doFetch(force) {
 				window.__leadsEnabledForCurrentLevel = true;
 			}
 		}
-  } catch (e) {
-    console.warn('[chat] doFetch error', e);
-  }
+	} catch (e) {
+	}
 }
 
 async function pollMessagesLoop() {
@@ -492,7 +490,6 @@ async function sendChatMessage() {
 	try {
 		await fetch('/api/message/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) });
 	} catch (e) {
-		console.warn('Failed to send message', e);
 	}
 	if (input) input.value = '';
 	if (typeof refreshChatContent === 'function') refreshChatContent();
@@ -522,6 +519,35 @@ document.addEventListener('DOMContentLoaded', function () {
 				} else {
 					if (btnEl) { btnEl.disabled = false; btnEl.style.display = ''; }
 					if (inputEl) inputEl.disabled = false;
+				}
+
+				const staticNotice = document.getElementById('leadsDisabledNotice');
+				if (staticNotice) {
+					staticNotice.style.display = leads ? 'none' : '';
+					const b = staticNotice.querySelector('button');
+					if (b) {
+						b.textContent = window.__chatSendToAI ? 'AI mode: ON' : 'Ask AI';
+						b.classList.toggle('active', !!window.__chatSendToAI);
+						b.onclick = function(){
+							window.__chatSendToAI = !window.__chatSendToAI;
+							const isAI = !!window.__chatSendToAI;
+							b.textContent = isAI ? 'AI mode: ON' : 'Ask AI';
+							b.classList.toggle('active', isAI);
+							if (isAI) {
+								if (inputEl) inputEl.disabled = false;
+								if (btnEl) { btnEl.disabled = false; btnEl.style.display = ''; }
+								if (inputEl) inputEl.focus();
+							} else {
+								if (window.__leadsEnabledForCurrentLevel === false) {
+									if (inputEl) inputEl.disabled = true;
+									if (btnEl) { btnEl.disabled = true; btnEl.style.display = 'none'; }
+								} else {
+									if (inputEl) inputEl.disabled = false;
+									if (btnEl) { btnEl.disabled = false; btnEl.style.display = ''; }
+								}
+							}
+						};
+					}
 				}
 			}
 		} catch (e) {}

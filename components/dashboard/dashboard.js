@@ -245,7 +245,6 @@ async function pollThreadLoop() {
         }
       }
     } catch (e) {
-      console.warn('[admin/chat] poll error', e);
     }
     await new Promise(r => setTimeout(r, 2000));
   }
@@ -297,7 +296,6 @@ async function bootstrap() {
     const all = await fetchAllMessages();
     buildConversationList(all.messages || []);
   } catch (e) {
-    console.warn('[admin/chat] init list error', e);
   }
   document.getElementById('adminChatSend').addEventListener('click', sendToCurrent);
   document.getElementById('adminChatInput').addEventListener('keydown', function(e){ if (e.key==='Enter') sendToCurrent(); });

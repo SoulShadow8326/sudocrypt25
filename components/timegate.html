@@ -60,8 +60,6 @@ try {
         const notyf = typeof Notyf !== 'undefined' ? new Notyf() : null
         if (notyf) {
             notyf.success('Login successful please wait for Sudocrypt v15.0 to start')
-        } else {
-            alert('Login successful please wait for Sudocrypt v15.0 to start')
         }
         const cleanUrl = window.location.pathname + window.location.hash
         if (history && history.replaceState) {

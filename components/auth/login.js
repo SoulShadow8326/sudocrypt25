@@ -17,8 +17,6 @@ function readOtp() {
 function showToast(msg, ok = true) {
     if (notyf) {
         ok ? notyf.success(msg) : notyf.error(msg)
-    } else {
-        alert(msg)
     }
 }
 function updateUI() {

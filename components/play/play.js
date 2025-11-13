@@ -3,11 +3,9 @@ async function fetchCurrentLevel() {
         const url = '/api/play/current' + (window.location.search || '');
         const resp = await fetch(url, { credentials: 'same-origin' });
         if (!resp.ok) {
-            console.warn('[play.js] current level fetch failed', resp.status, await resp.text());
             return null;
         }
-        const data = await resp.json();
-		alert(JSON.stringify(data, null, 2));
+    const data = await resp.json();
         return data;
     } catch (err) {
         console.error('[play.js] error fetching current level', err);
@@ -20,7 +18,6 @@ async function fetchLeaderboard() {
         const url = '/api/leaderboard';
         const resp = await fetch(url, { credentials: 'same-origin' });
         if (!resp.ok) {
-            console.warn('[play.js] leaderboard fetch failed', resp.status, await resp.text());
             return null;
         }
         const data = await resp.json();
@@ -69,7 +66,6 @@ async function initPlay() {
                 }
             }
         } catch (e) {
-            console.warn('[play.js] failed to update title', e);
         }
     }
     
@@ -78,7 +74,6 @@ async function initPlay() {
     try {
         const levelsResp = await fetch('/api/levels', { credentials: 'same-origin' });
         if (!levelsResp.ok) {
-            console.warn('[play.js] levels list fetch failed', levelsResp.status);
             shouldDisableInput = true; 
         } else {
             const levels = await levelsResp.json();
@@ -141,7 +136,7 @@ async function initPlay() {
             });
         }
     } catch (e) {
-        console.warn('[play.js] failed to attach enter handler', e);
+        // Suppress non-critical warning
     }
 }
 
@@ -156,11 +151,6 @@ window.__renderMarkup = renderMarkup;
 
 async function submitAnswer() {
     try {
-        if (window.__leadsEnabledForCurrentLevel === false) {
-            const n = new Notyf();
-            n.error('Leads are disabled for this level');
-            return;
-        }
         const input = document.getElementById('messageInput');
         if (!input) return;
         const now = Date.now();

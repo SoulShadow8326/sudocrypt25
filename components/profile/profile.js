@@ -72,15 +72,13 @@ function parseLogs(logsString) {
     logs.forEach((logEntry) => {
         const parts = logEntry.split('+');
         if (parts.length < 3) {
-            console.warn('Invalid log format:', logEntry);
-            return;
-        }
+                return;
+            }
         const timeStr = parts[parts.length - 1];
         const typpe = parts[parts.length - 2];
         const attempt = parts.slice(0, parts.length - 2).join('+');
         const unixTime = parseInt(timeStr, 10);
         if (isNaN(unixTime)) {
-            console.warn('Invalid timestamp:', timeStr);
             return;
         }
         allLogs.push({
