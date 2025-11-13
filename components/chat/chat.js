@@ -12,7 +12,7 @@ var chatSignal = Signal('chatOpenState', 'close');
 
 let chatOpen = false;
 let lastChecksum = '';
-let lastSeenIncomingTs = 0; // latest timestamp o incoming message the user has sen
+let lastSeenIncomingTs = 0;
 let lastRenderedMaxIDChat = 0;
 let chatLastSendAt = 0;
 const chatCooldownMs = 5000;

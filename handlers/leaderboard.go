@@ -127,7 +127,6 @@ func LeaderboardAPIHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			if err := json.Unmarshal([]byte(v), &e); err != nil {
 				continue
 			}
-			// skip admin entries if admins set provided
 			if admins != nil && admins.IsAdmin(e.Email) {
 				continue
 			}
@@ -149,7 +148,7 @@ func LeaderboardAPIHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 					return strings.ToLower(entries[i].Name) < strings.ToLower(entries[j].Name)
 				}
 				return strings.ToLower(entries[i].Name) > strings.ToLower(entries[j].Name)
-			default: // points
+			default:
 				if entries[i].Points == entries[j].Points {
 					if order == "asc" {
 						return entries[i].Time < entries[j].Time

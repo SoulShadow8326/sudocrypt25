@@ -162,12 +162,12 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	http.HandleFunc("/api/admin/announcements/set", handlers.SetAnnouncementHandler(dbConn, admins))
 	http.HandleFunc("/api/admin/announcements/delete", handlers.DeleteAnnouncementHandler(dbConn, admins))
 	http.HandleFunc("/api/admin/user/progress", handlers.AdminUpdateUserProgressHandler(dbConn, admins))
-	// messages APIs
+	http.HandleFunc("/api/admin/users", handlers.AdminListUsersHandler(dbConn, admins))
+	http.HandleFunc("/api/admin/user", handlers.AdminUserActionHandler(dbConn, admins))
 	http.HandleFunc("/api/messages", handlers.ListMessagesHandler(dbConn, admins))
 	http.HandleFunc("/api/message/send", func(w http.ResponseWriter, r *http.Request) {
 		handlers.SendMessageHandler(dbConn, admins)(w, r)
 	})
-	// logs API
 	http.HandleFunc("/api/logs", handlers.LogsHandler(dbConn, admins))
 	http.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("session_id")

@@ -125,7 +125,6 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 		for _, v := range all {
 			var m Message
 			if err := json.Unmarshal([]byte(v), &m); err == nil {
-				// compare
 				if requesterIsAdmin && userParam == "" {
 					if strings.EqualFold(m.To, requesterRaw) || strings.EqualFold(m.From, requesterRaw) ||
 						strings.EqualFold(m.To, adminInbox) || strings.EqualFold(m.From, adminInbox) {

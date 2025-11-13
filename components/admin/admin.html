@@ -57,6 +57,13 @@
             </div>
         </div>
 
+        <div class="admin-users" style="margin-top: 24px;">
+            <h2>All Users</h2>
+            <div id="adminUsersList" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+                <div style="color:rgba(255,255,255,0.6);font-size:13px">Loading users...</div>
+            </div>
+        </div>
+
         <div id="popupContainer" class="popup-container hidden">
 
             <div id="popupContent" class="popup-content">
@@ -145,6 +152,16 @@
                     <button class="btn-primary" id="annSaveBtn">Save</button>
                     <button class="btn-primary" id="annCloseBtn">Close</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminConfirmModal" class="popup-container hidden" style="position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:1250;">
+        <div style="background:#0f1724;padding:18px;border-radius:8px;max-width:560px;width:100%;color:inherit;">
+            <div id="adminConfirmMessage" style="margin-bottom:12px;color:rgba(255,255,255,0.9)"></div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button id="adminConfirmCancel" class="btn-primary" style="background:#444">Cancel</button>
+                <button id="adminConfirmOk" class="btn-primary">OK</button>
             </div>
         </div>
     </div>

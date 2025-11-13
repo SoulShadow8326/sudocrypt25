@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	dbpkg "sudocrypt25/db"
@@ -195,6 +196,176 @@ func AdminUpdateUserProgressHandler(dbConn *sql.DB, admins *Admins) http.Handler
 			return
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+	}
+}
+
+func AdminListUsersHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("email")
+		if err != nil || c.Value == "" || admins == nil || !admins.IsAdmin(c.Value) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		users := map[string]map[string]interface{}{}
+		if accs, err := dbpkg.GetAll(dbConn, "accounts"); err == nil {
+			for email, raw := range accs {
+				var obj map[string]interface{}
+				if err := json.Unmarshal([]byte(raw), &obj); err == nil {
+					users[email] = obj
+				}
+			}
+		}
+		if regs, err := dbpkg.GetAll(dbConn, "registration"); err == nil {
+			for email, raw := range regs {
+				if _, ok := users[email]; ok {
+					continue
+				}
+				var obj map[string]interface{}
+				if err := json.Unmarshal([]byte(raw), &obj); err == nil {
+					users[email] = obj
+				}
+			}
+		}
+		if lbs, err := dbpkg.GetAll(dbConn, "leaderboard"); err == nil {
+			for email, raw := range lbs {
+				if _, ok := users[email]; ok {
+					continue
+				}
+				var obj map[string]interface{}
+				if err := json.Unmarshal([]byte(raw), &obj); err == nil {
+					users[email] = obj
+				}
+			}
+		}
+
+		out := []map[string]interface{}{}
+		for email, obj := range users {
+			name := ""
+			if n, ok := obj["name"].(string); ok {
+				name = n
+			}
+			cryptic := 0
+			ctf := 0
+			if lm, ok := obj["levels"].(map[string]interface{}); ok {
+				if v, ok2 := lm["cryptic"]; ok2 {
+					if vf, ok3 := v.(float64); ok3 {
+						cryptic = int(vf)
+					}
+				}
+				if v, ok2 := lm["ctf"]; ok2 {
+					if vf, ok3 := v.(float64); ok3 {
+						ctf = int(vf)
+					}
+				}
+			}
+			if prog, ok := obj["progress"].(map[string]interface{}); ok {
+				if p, ok2 := prog["cryptic"].([]interface{}); ok2 && len(p) > 0 {
+					if s, ok3 := p[0].(string); ok3 {
+						parts := strings.SplitN(s, "-", 2)
+						if len(parts) == 2 {
+							if n, err := strconv.Atoi(parts[1]); err == nil {
+								cryptic = n
+							}
+						}
+					}
+				}
+				if p, ok2 := prog["ctf"].([]interface{}); ok2 && len(p) > 0 {
+					if s, ok3 := p[0].(string); ok3 {
+						parts := strings.SplitN(s, "-", 2)
+						if len(parts) == 2 {
+							if n, err := strconv.Atoi(parts[1]); err == nil {
+								ctf = n
+							}
+						}
+					}
+				}
+			}
+			out = append(out, map[string]interface{}{"email": email, "name": name, "cryptic": cryptic, "ctf": ctf})
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(out)
+	}
+}
+
+func AdminUserActionHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("email")
+		if err != nil || c.Value == "" || admins == nil || !admins.IsAdmin(c.Value) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		var payload map[string]string
+		defer r.Body.Close()
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			http.Error(w, "bad payload", http.StatusBadRequest)
+			return
+		}
+		email := payload["email"]
+		action := payload["action"]
+		if email == "" || action == "" {
+			http.Error(w, "missing fields", http.StatusBadRequest)
+			return
+		}
+		acctRaw, _ := dbpkg.Get(dbConn, "accounts", email)
+		var acct map[string]interface{}
+		if acctRaw != "" {
+			json.Unmarshal([]byte(acctRaw), &acct)
+		} else {
+			acct = map[string]interface{}{"levels": map[string]float64{"cryptic": 0, "ctf": 0}}
+		}
+		switch action {
+		case "reset_cryptic":
+			if lm, ok := acct["levels"].(map[string]interface{}); ok {
+				lm["cryptic"] = float64(0)
+				acct["levels"] = lm
+			} else {
+				acct["levels"] = map[string]float64{"cryptic": 0, "ctf": 0}
+			}
+			if prog, ok := acct["progress"].(map[string]interface{}); ok {
+				delete(prog, "cryptic")
+				acct["progress"] = prog
+			}
+			b, _ := json.Marshal(acct)
+			if err := dbpkg.Set(dbConn, "accounts", email, string(b)); err != nil {
+				http.Error(w, "db error", http.StatusInternalServerError)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+			return
+		case "reset_ctf":
+			if lm, ok := acct["levels"].(map[string]interface{}); ok {
+				lm["ctf"] = float64(0)
+				acct["levels"] = lm
+			} else {
+				acct["levels"] = map[string]float64{"cryptic": 0, "ctf": 0}
+			}
+			if prog, ok := acct["progress"].(map[string]interface{}); ok {
+				delete(prog, "ctf")
+				acct["progress"] = prog
+			}
+			b, _ := json.Marshal(acct)
+			if err := dbpkg.Set(dbConn, "accounts", email, string(b)); err != nil {
+				http.Error(w, "db error", http.StatusInternalServerError)
+				return
+			}
+			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+			return
+		case "delete":
+			if err := dbpkg.Delete(dbConn, "accounts", email); err != nil {
+				http.Error(w, "db error", http.StatusInternalServerError)
+				return
+			}
+			_ = dbpkg.Delete(dbConn, "leaderboard", email)
+			json.NewEncoder(w).Encode(map[string]bool{"success": true})
+			return
+		default:
+			http.Error(w, "unknown action", http.StatusBadRequest)
 			return
 		}
 	}

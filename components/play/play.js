@@ -136,7 +136,6 @@ async function initPlay() {
             });
         }
     } catch (e) {
-        // Suppress non-critical warning
     }
 }
 

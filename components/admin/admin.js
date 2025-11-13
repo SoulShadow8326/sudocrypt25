@@ -69,7 +69,6 @@ function openPopup(levelNumber) {
             } catch(e) {
                 if (raw && String(raw).trim() !== '') parts = [String(raw)];
             }
-            // clear existing parts
             const walkthroughPartsContainer = document.getElementById('walkthroughParts');
             if (walkthroughPartsContainer) walkthroughPartsContainer.innerHTML = '';
             if (parts.length === 0) parts = [''];
@@ -212,3 +211,113 @@ if (_turnOffAll) _turnOffAll.addEventListener('click', async ()=>{
         }
     } catch(e) { if (notyf) notyf.error('Failed to turn off all leads') }
 })
+
+async function fetchAdminUsers() {
+    try {
+        const res = await fetch('/api/admin/users', {credentials: 'same-origin'})
+        if (!res.ok) return []
+        const list = await res.json().catch(()=>[])
+        return Array.isArray(list) ? list : []
+    } catch(e) { return [] }
+}
+
+function renderAdminUser(u) {
+    const email = u.email || ''
+    const name = u.name || ''
+    const cryptic = (typeof u.cryptic === 'number') ? u.cryptic : 0
+    const ctf = (typeof u.ctf === 'number') ? u.ctf : 0
+    const el = document.createElement('div')
+    el.style.padding = '12px'
+    el.style.borderRadius = '8px'
+    el.style.background = 'rgba(255,255,255,0.02)'
+    el.style.display = 'flex'
+    el.style.justifyContent = 'space-between'
+    el.style.alignItems = 'center'
+    el.innerHTML = `
+        <div style="flex:1">
+            <div style="font-size:14px;color:rgba(255,255,255,0.9);font-weight:600">${escapeHtml(name) || escapeHtml(email)}</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.6)">${escapeHtml(email)}</div>
+            <div style="margin-top:6px;font-size:13px;color:rgba(255,255,255,0.8)">Current Cryptic Level: ${cryptic} &nbsp; • &nbsp; Current CTF Level: ${ctf}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-left:12px">
+            <button class="btn-primary user-reset-cryptic" data-email="${escapeHtml(email)}">Reset cryptic lvl</button>
+            <button class="btn-primary user-reset-ctf" data-email="${escapeHtml(email)}" style="background:#444">Reset CTF lvl</button>
+            <button class="btn-primary user-delete" data-email="${escapeHtml(email)}" style="background:#7a1a1a">Delete user</button>
+        </div>
+    `
+    return el
+}
+
+async function reloadAdminUsers() {
+    const container = document.getElementById('adminUsersList')
+    if (!container) return
+    container.innerHTML = ''
+    const list = await fetchAdminUsers()
+    if (!list || list.length === 0) {
+        container.innerHTML = '<div style="color:rgba(255,255,255,0.6)">No users found</div>'
+        return
+    }
+    for (const u of list) {
+        container.appendChild(renderAdminUser(u))
+    }
+}
+
+async function postAdminUserAction(email, action) {
+    try {
+        const res = await fetch('/api/admin/user', {method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify({email: email, action: action})})
+        return res && res.ok
+    } catch(e) { return false }
+}
+
+function showAdminConfirm(message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('adminConfirmModal')
+        const msg = document.getElementById('adminConfirmMessage')
+        const ok = document.getElementById('adminConfirmOk')
+        const cancel = document.getElementById('adminConfirmCancel')
+        if (!modal || !msg || !ok || !cancel) return resolve(false)
+        msg.innerText = message
+        modal.style.display = 'flex'
+        const cleanup = () => {
+            modal.style.display = 'none'
+            ok.removeEventListener('click', onOk)
+            cancel.removeEventListener('click', onCancel)
+        }
+        const onOk = () => { cleanup(); resolve(true) }
+        const onCancel = () => { cleanup(); resolve(false) }
+        ok.addEventListener('click', onOk)
+        cancel.addEventListener('click', onCancel)
+    })
+}
+
+document.addEventListener('click', async function(e){
+    const t = e.target
+    if (t && t.classList) {
+        if (t.classList.contains('user-reset-cryptic')) {
+            const email = t.getAttribute('data-email')
+            if (!email) return
+            t.disabled = true
+            const ok = await postAdminUserAction(email, 'reset_cryptic')
+            t.disabled = false
+            if (ok) { if (notyf) notyf.success('Reset cryptic level'); reloadAdminUsers() } else { if (notyf) notyf.error('Failed') }
+        } else if (t.classList.contains('user-reset-ctf')) {
+            const email = t.getAttribute('data-email')
+            if (!email) return
+            t.disabled = true
+            const ok = await postAdminUserAction(email, 'reset_ctf')
+            t.disabled = false
+            if (ok) { if (notyf) notyf.success('Reset CTF level'); reloadAdminUsers() } else { if (notyf) notyf.error('Failed') }
+        } else if (t.classList.contains('user-delete')) {
+            const email = t.getAttribute('data-email')
+            if (!email) return
+            const confirmed = await showAdminConfirm('Delete user ' + email + '?')
+            if (!confirmed) return
+            t.disabled = true
+            const ok = await postAdminUserAction(email, 'delete')
+            t.disabled = false
+            if (ok) { if (notyf) notyf.success('Deleted user'); reloadAdminUsers() } else { if (notyf) notyf.error('Failed') }
+        }
+    }
+})
+
+window.addEventListener('load', ()=>{ reloadAdminUsers() })
