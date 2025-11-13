@@ -46,9 +46,13 @@ const announcement_Item = `
 function updateAnnouncementsTop() {
     var header = document.querySelector('header') || document.getElementById('header') || document.querySelector('.header') || document.querySelector('.site-header');
     var top = 14;
-    if (header) {
-        var rect = header.getBoundingClientRect();
-        top = Math.ceil(rect.bottom + 2);
+    if (window.scrollY && window.scrollY > 0) {
+        top = 0;
+    } else {
+        if (header) {
+            var rect = header.getBoundingClientRect();
+            top = Math.ceil(rect.bottom + 2);
+        }
     }
     document.documentElement.style.setProperty('--announcements-top', top + 'px');
 }
@@ -56,6 +60,13 @@ function updateAnnouncementsTop() {
 var resizeObserver = null;
 window.addEventListener('load', function() {
     updateAnnouncementsTop();
+    window.addEventListener('scroll', function(){
+        if (window.scrollY && window.scrollY > 0) {
+            document.documentElement.style.setProperty('--announcements-top', '0px');
+        } else {
+            updateAnnouncementsTop();
+        }
+    });
     window.addEventListener('resize', updateAnnouncementsTop);
     var headerEl = document.querySelector('header') || document.getElementById('header') || document.querySelector('.header') || document.querySelector('.site-header');
     if (headerEl && 'ResizeObserver' in window) {
