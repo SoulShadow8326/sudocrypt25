@@ -146,7 +146,7 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 			}
 		}
 		td := template.TemplateData{PageTitle: "Leaderboard", CurrentPath: r.URL.Path, IsAuthenticated: auth}
-		if html, err := handlers.GenerateLeaderboardHTML(dbConn); err == nil {
+		if html, err := handlers.GenerateLeaderboardHTML(dbConn, admins); err == nil {
 			td.LeaderboardHTML = htmltmpl.HTML(html)
 		}
 		if err := template.RenderTemplate(w, "leaderboard", td); err != nil {
@@ -157,7 +157,7 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	http.HandleFunc("/delete_level", handlers.DeleteLevelHandler(dbConn))
 	http.HandleFunc("/submit", handlers.SubmitHandler(dbConn))
 	http.HandleFunc("/api/play/current", handlers.CurrentLevelHandler(dbConn))
-	http.HandleFunc("/api/leaderboard", handlers.LeaderboardAPIHandler(dbConn))
+	http.HandleFunc("/api/leaderboard", handlers.LeaderboardAPIHandler(dbConn, admins))
 	http.HandleFunc("/api/levels", handlers.LevelsListHandler(dbConn))
 	http.HandleFunc("/api/admin/announcements/set", handlers.SetAnnouncementHandler(dbConn, admins))
 	http.HandleFunc("/api/admin/announcements/delete", handlers.DeleteAnnouncementHandler(dbConn, admins))

@@ -60,7 +60,7 @@ func ProcessLeaderboard(dbConn *sql.DB) error {
 	return nil
 }
 
-func GenerateLeaderboardHTML(dbConn *sql.DB) (string, error) {
+func GenerateLeaderboardHTML(dbConn *sql.DB, admins *Admins) (string, error) {
 	data, err := dbpkg.GetAll(dbConn, "leaderboard")
 	if err != nil {
 		return "", err
@@ -86,25 +86,28 @@ func GenerateLeaderboardHTML(dbConn *sql.DB) (string, error) {
 	}
 	cardTpl := string(cardBytes)
 	var sb strings.Builder
-	for i, e := range entries {
-		rank := fmt.Sprintf("%d", i+1)
+	rankCounter := 1
+	for _, e := range entries {
+		if admins != nil && admins.IsAdmin(e.Email) {
+			continue
+		}
+		rank := fmt.Sprintf("%d", rankCounter)
 		level := fmt.Sprintf("%d", e.Points)
 		emailText := ""
-		if strings.HasSuffix(strings.ToLower(e.Email), "@dpsrkp.net") {
-			emailText = template.HTMLEscapeString("[NC] ")
-		}
 		item := cardTpl
 		item = strings.ReplaceAll(item, "{rank}", rank)
 		item = strings.ReplaceAll(item, "{name}", template.HTMLEscapeString(e.Name))
 		item = strings.ReplaceAll(item, "{level}", level)
 		item = strings.ReplaceAll(item, "{email_text}", emailText)
-		item = strings.ReplaceAll(item, "{email}", template.HTMLEscapeString(e.Email))
+		emailDisplay := template.HTMLEscapeString(e.Email)
+		item = strings.ReplaceAll(item, "{email}", emailDisplay)
 		sb.WriteString(item)
+		rankCounter++
 	}
 	return sb.String(), nil
 }
 
-func LeaderboardAPIHandler(dbConn *sql.DB) http.HandlerFunc {
+func LeaderboardAPIHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		sortBy := q.Get("sort")
@@ -122,6 +125,10 @@ func LeaderboardAPIHandler(dbConn *sql.DB) http.HandlerFunc {
 		for _, v := range data {
 			var e leaderboard
 			if err := json.Unmarshal([]byte(v), &e); err != nil {
+				continue
+			}
+			// skip admin entries if admins set provided
+			if admins != nil && admins.IsAdmin(e.Email) {
 				continue
 			}
 			entries = append(entries, e)
