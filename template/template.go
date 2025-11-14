@@ -23,6 +23,14 @@ type TemplateData struct {
 	LevelNum          string
 	UserEmail         string
 	SrcHint           template.HTML
+	Sponsors          []Sponsor
+}
+
+type Sponsor struct {
+	ImageURL string
+	Link     string
+	Alt      string
+	Height   string
 }
 
 func InitTemplates() error {

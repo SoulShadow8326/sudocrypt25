@@ -18,6 +18,7 @@
         href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap">
     <link rel="stylesheet" href="/components/main.css">
     <link rel="stylesheet" href="/components/landing/landing.css">
+    <link rel="stylesheet" href="/components/sponsors/sponsors.css">
 </head>
 
 <body>
@@ -46,7 +47,10 @@
                         <div class="btn">
                             <a href="/auth" class="cta-button">Pre-Register For Sudocrypt v15.0</a>
                         </div>
-
+        <section class="events-section" style="padding-top: 5vw;">
+                <h2 class="sponsors-title" style="font-size: 4rem;">Event Partners
+        {{template "sponsors" .Sponsors}}
+    </h2>
                         <div class="prizes">
                             <h2 class="prizes-sub">Win Cash Prizes Over</h2>
                             <h1 class="prizes-amount">₹50,000</h1>
@@ -88,6 +92,7 @@
             </div>
         </div>  
         {{template "footer" .}}
+        <script src="/components/sponsors/sponsors.js"></script>
 </body>
 
 </html>

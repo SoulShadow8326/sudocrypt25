@@ -28,6 +28,23 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 		_, err := r.Cookie("session_id")
 		auth := err == nil
 		td := template.TemplateData{PageTitle: "Home", CurrentPath: r.URL.Path, TimeGateStart: os.Getenv("TIMEGATE_START"), IsAuthenticated: auth}
+		// load sponsors from assets JSON
+		type sRaw struct {
+			ImageUrl string `json:"imageUrl"`
+			Alt      string `json:"alt"`
+			Link     string `json:"link"`
+			Height   string `json:"height"`
+		}
+		if b, err := os.ReadFile("components/assets/sponsors.json"); err == nil {
+			var arr []sRaw
+			if json.Unmarshal(b, &arr) == nil {
+				var out []template.Sponsor
+				for _, it := range arr {
+					out = append(out, template.Sponsor{ImageURL: it.ImageUrl, Link: it.Link, Alt: it.Alt, Height: it.Height})
+				}
+				td.Sponsors = out
+			}
+		}
 		if err := template.RenderTemplate(w, "landing", td); err != nil {
 			http.Error(w, "template error", http.StatusInternalServerError)
 		}
