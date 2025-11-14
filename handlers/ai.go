@@ -285,6 +285,108 @@ func AILeadHandler(dbConn *sql.DB) http.HandlerFunc {
 				aiVal := strings.Join([]string{"admin@sudocrypt.com", userEmail, lvlID, "lead", aiContent}, "|")
 				_ = dbpkg.Set(dbConn, "messages", userEmail, aiVal)
 
+				if val {
+					acctRaw, err := dbpkg.Get(dbConn, "accounts", userEmail)
+					var acct map[string]interface{}
+					if err == nil {
+						json.Unmarshal([]byte(acctRaw), &acct)
+					} else {
+						acct = map[string]interface{}{"levels": map[string]float64{"cryptic": 0, "ctf": 0}}
+					}
+					progMap := map[string][]interface{}{}
+					if pm, ok := acct["progress"].(map[string]interface{}); ok {
+						for k, v := range pm {
+							if arr2, ok2 := v.([]interface{}); ok2 && len(arr2) >= 2 {
+								progMap[k] = []interface{}{arr2[0], arr2[1]}
+							}
+						}
+					} else if p, ok := acct["progress"].([]interface{}); ok && len(p) >= 2 {
+						progMap["cryptic"] = []interface{}{p[0], p[1]}
+					}
+					levelsMap := map[string]float64{}
+					if lm, ok := acct["levels"].(map[string]interface{}); ok {
+						for k, v := range lm {
+							if vf, ok2 := v.(float64); ok2 {
+								levelsMap[k] = vf
+							}
+						}
+					}
+					partsArr := arr
+					partsLower := make([]string, 0)
+					for _, p := range partsArr {
+						partsLower = append(partsLower, strings.ToLower(p))
+					}
+					partsTok := regexp.MustCompile(`[A-Za-z0-9\.]+`).FindAllString(strings.ToLower(userQuestion), -1)
+					matchedIdx := -1
+					if len(partsLower) > 0 && len(partsTok) > 0 {
+						qstr := strings.ToLower(userQuestion)
+						for i, p := range partsLower {
+							if p == "" {
+								continue
+							}
+							if strings.Contains(p, qstr) || strings.Contains(qstr, p) {
+								matchedIdx = i
+								break
+							}
+							for _, tok := range partsTok {
+								if len(tok) < 2 {
+									continue
+								}
+								if strings.Contains(p, tok) {
+									matchedIdx = i
+									break
+								}
+							}
+							if matchedIdx != -1 {
+								break
+							}
+						}
+					}
+					partsIdx := matchedIdx
+					partsCount := len(partsLower)
+					partsIdxValid := partsIdx >= 0 && partsIdx < partsCount
+					parts := strings.SplitN(lvlID, "-", 2)
+					typ := "cryptic"
+					if len(parts) == 2 {
+						typ = parts[0]
+					}
+					curr := 0
+					if v, ok := levelsMap[typ]; ok {
+						curr = int(v)
+					}
+					expectedLevel := fmt.Sprintf("%s-%d", typ, curr)
+					var progLevel string
+					var progCheckpoint float64
+					if pr, ok := progMap[typ]; ok && len(pr) >= 2 {
+						if s, ok2 := pr[0].(string); ok2 {
+							progLevel = s
+						}
+						if n, ok2 := pr[1].(float64); ok2 {
+							progCheckpoint = n
+						}
+					} else {
+						progLevel = expectedLevel
+						progCheckpoint = 0
+					}
+					if progLevel != expectedLevel {
+						progLevel = expectedLevel
+						progCheckpoint = 0
+					}
+					if partsIdxValid {
+						nextCheckpoint := int(progCheckpoint) + 1
+						if partsIdx == nextCheckpoint {
+							progCheckpoint = float64(partsIdx)
+							if progCheckpoint > 9 {
+								progCheckpoint = 9
+							}
+							progMap[typ] = []interface{}{progLevel, progCheckpoint}
+							acct["progress"] = progMap
+							b, _ := json.Marshal(acct)
+							_ = dbpkg.Set(dbConn, "accounts", userEmail, string(b))
+						}
+					}
+				}
+
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(map[string]bool{"result": val})
 				return
