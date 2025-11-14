@@ -148,7 +148,7 @@ func UserProfileHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			"ScorePoints":     nil,
 			"PageTitle":       fmt.Sprintf("%s - Profile", displayName),
 			"IsAuthenticated": true,
-			"Admin": 		   admins.IsAdmin(email),
+			"Admin":           admins.IsAdmin(email),
 		}
 
 		logsMap, _ := dbpkg.GetAll(dbConn, "logs")

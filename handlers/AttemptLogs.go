@@ -27,8 +27,8 @@ func AttemptLog(dbConn *sql.DB) http.HandlerFunc {
 		if r.Method == "POST" {
 			//----
 			var req struct {
-				Log   		string	`json:"logs"`
-				Typpe       string  `json:"type"`
+				Log   string `json:"logs"`
+				Typpe string `json:"type"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 				http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -68,7 +68,7 @@ func AttemptLog(dbConn *sql.DB) http.HandlerFunc {
 				json.NewEncoder(w).Encode(map[string]interface{}{
 					"success": true,
 					"message": "Bio updated successfully",
-					"data": "",
+					"data":    "",
 				})
 				return
 			}
@@ -79,12 +79,11 @@ func AttemptLog(dbConn *sql.DB) http.HandlerFunc {
 				return
 			}
 
-
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"success": true,
 				"message": "Bio updated successfully",
-				"data": acct["logs"].(string),
+				"data":    acct["logs"].(string),
 			})
 		}
 	}

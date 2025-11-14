@@ -419,10 +419,30 @@ async function sendChatMessage() {
 			if (!levelID) { if (typeof Notyf !== 'undefined') new Notyf().error('no level'); return }
 			const res = await fetch('/api/ai/lead', { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ level: levelID, question: content }) });
 			if (!res.ok) {
+				const txt = await res.text().catch(()=>null);
+				const container = document.getElementById('chatContainer');
+				const message = document.createElement('div');
+				message.className = 'chat-message admin';
+				const contentWrap = document.createElement('div');
+				contentWrap.className = 'chat-message-content';
+				const sender = document.createElement('div');
+				sender.className = 'chat-message-label';
+				sender.textContent = 'AI';
+				const text = document.createElement('div');
+				text.className = 'chat-message-text';
 				if (res.status === 404) {
-					if (typeof Notyf !== 'undefined') new Notyf().error('no walkthrough available')
+					text.textContent = 'no walkthrough available';
+				} else if (txt) {
+					text.textContent = txt;
 				} else {
-					if (typeof Notyf !== 'undefined') new Notyf().error('ai error')
+					text.textContent = 'ai error';
+				}
+				contentWrap.appendChild(sender);
+				contentWrap.appendChild(text);
+				message.appendChild(contentWrap);
+				if (container) {
+					container.appendChild(message);
+					container.scrollTop = container.scrollHeight;
 				}
 				return;
 			}
