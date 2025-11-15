@@ -133,6 +133,22 @@ func UserProfileHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			}
 		}
 
+		viewerIsAdmin := false
+		if currentUserEmail != "" {
+			if admins != nil && admins.IsAdmin(currentUserEmail) {
+				viewerIsAdmin = true
+			} else {
+				if acctRawV, err := dbpkg.Get(dbConn, "accounts", currentUserEmail); err == nil && acctRawV != "" {
+					var acctV map[string]interface{}
+					if json.Unmarshal([]byte(acctRawV), &acctV) == nil {
+						if adm, _ := acctV["admin"].(bool); adm {
+							viewerIsAdmin = true
+						}
+					}
+				}
+			}
+		}
+
 		data := map[string]interface{}{
 			"Name":            displayName,
 			"Email":           email,
@@ -147,7 +163,7 @@ func UserProfileHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			"ScorePoints":     nil,
 			"PageTitle":       fmt.Sprintf("%s - Profile", displayName),
 			"IsAuthenticated": true,
-			"Admin":           admins.IsAdmin(email),
+			"Admin":           viewerIsAdmin,
 		}
 
 		logsMap, _ := dbpkg.GetAll(dbConn, "logs")
