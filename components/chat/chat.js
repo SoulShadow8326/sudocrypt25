@@ -15,7 +15,7 @@ let lastChecksum = '';
 let lastSeenIncomingTs = 0;
 let lastRenderedMaxIDChat = 0;
 let chatLastSendAt = 0;
-const chatCooldownMs = 5000;
+let chatCooldownMs = 5000;
 let chatCooldownInterval = null;
 
 function getLatestIncomingTs(msgs) {
@@ -275,13 +275,17 @@ async function doFetch(force) {
 				btn.addEventListener('click', function(){
 					window.__chatSendToAI = !window.__chatSendToAI;
 					const isAI = !!window.__chatSendToAI;
+					chatCooldownMs = isAI ? 10000 : 5000;
 					btn.textContent = isAI ? 'AI mode: ON' : 'Ask AI';
 					btn.classList.toggle('active', isAI);
 					const inputEl = document.getElementById('chatInput');
 					const sendBtn = document.getElementById('chatendButton');
 					if (isAI) {
 						if (inputEl) inputEl.disabled = false;
-						if (sendBtn) { sendBtn.disabled = false; sendBtn.style.display = ''; }
+						if (sendBtn) {
+							const rem = Math.max(0, (chatLastSendAt || 0) + (chatCooldownMs || 0) - Date.now());
+							if (rem > 0) { sendBtn.disabled = true; sendBtn.style.display = 'none'; } else { sendBtn.disabled = false; sendBtn.style.display = ''; }
+						}
 						if (inputEl) inputEl.focus();
 					} else {
 						if (window.__leadsEnabledForCurrentLevel === false) {
@@ -289,7 +293,10 @@ async function doFetch(force) {
 							if (sendBtn) { sendBtn.disabled = true; sendBtn.style.display = 'none'; }
 						} else {
 							if (inputEl) inputEl.disabled = false;
-							if (sendBtn) { sendBtn.disabled = false; sendBtn.style.display = ''; }
+							if (sendBtn) {
+								const rem = Math.max(0, (chatLastSendAt || 0) + (chatCooldownMs || 0) - Date.now());
+								if (rem > 0) { sendBtn.disabled = true; sendBtn.style.display = 'none'; } else { sendBtn.disabled = false; sendBtn.style.display = ''; }
+							}
 						}
 					}
 				});
@@ -300,7 +307,10 @@ async function doFetch(force) {
 			if (!leadsOn) {
 				if (window.__chatSendToAI) {
 					if (inputEl) inputEl.disabled = false;
-					if (sendBtn) { sendBtn.disabled = false; sendBtn.style.display = ''; }
+					if (sendBtn) {
+						const rem = Math.max(0, (chatLastSendAt || 0) + (chatCooldownMs || 0) - Date.now());
+						if (rem > 0) { sendBtn.disabled = true; sendBtn.style.display = 'none'; } else { sendBtn.disabled = false; sendBtn.style.display = ''; }
+					}
 				} else {
 					if (inputEl) inputEl.disabled = true;
 					if (sendBtn) { sendBtn.disabled = true; sendBtn.style.display = 'none'; }
@@ -313,7 +323,10 @@ async function doFetch(force) {
 				window.__leadsEnabledForCurrentLevel = false;
 			} else {
 				if (inputEl) inputEl.disabled = false;
-				if (sendBtn) { sendBtn.disabled = false; sendBtn.style.display = ''; }
+				if (sendBtn) {
+					const rem = Math.max(0, (chatLastSendAt || 0) + (chatCooldownMs || 0) - Date.now());
+					if (rem > 0) { sendBtn.disabled = true; sendBtn.style.display = 'none'; } else { sendBtn.disabled = false; sendBtn.style.display = ''; }
+				}
 				if (notice) {
 					notice.style.display = 'none';
 					const b = notice.querySelector('button');
@@ -367,15 +380,17 @@ async function sendChatMessage() {
 	if (now - chatLastSendAt < chatCooldownMs) return;
 	chatLastSendAt = now;
 	const timerEl = document.getElementById('chatCooldownTimer');
+	const currentCooldown = window.__chatSendToAI ? 10000 : 5000;
+	chatCooldownMs = currentCooldown;
 	const sendBtnEl = document.getElementById('chatendButton');
 	if (sendBtnEl) {
 		sendBtnEl.disabled = true;
 		sendBtnEl.style.display = 'none';
 	}
-	if (timerEl) timerEl.textContent = Math.ceil(chatCooldownMs/1000) + 's';
+	if (timerEl) timerEl.textContent = Math.ceil(currentCooldown/1000) + 's';
 	if (chatCooldownInterval) clearInterval(chatCooldownInterval);
 	chatCooldownInterval = setInterval(() => {
-		const rem = Math.ceil((chatLastSendAt + chatCooldownMs - Date.now())/1000);
+		const rem = Math.ceil((chatLastSendAt + currentCooldown - Date.now())/1000);
 		if (!timerEl) return;
 		if (rem <= 0) {
 			timerEl.textContent = '';
@@ -469,8 +484,6 @@ async function sendChatMessage() {
 				container.scrollTop = container.scrollHeight;
 			}
 		} catch (e) { if (typeof Notyf !== 'undefined') new Notyf().error('ai error') }
-
-		if (input) input.value = '';
 		if (typeof refreshChatContent === 'function') refreshChatContent();
 		return;
 	}
@@ -551,6 +564,7 @@ document.addEventListener('DOMContentLoaded', function () {
 						b.onclick = function(){
 							window.__chatSendToAI = !window.__chatSendToAI;
 							const isAI = !!window.__chatSendToAI;
+							chatCooldownMs = isAI ? 10000 : 5000;
 							b.textContent = isAI ? 'AI mode: ON' : 'Ask AI';
 							b.classList.toggle('active', isAI);
 							if (isAI) {
