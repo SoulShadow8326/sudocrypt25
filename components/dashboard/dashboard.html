@@ -50,8 +50,13 @@
     {{template "footer" .}}
     <script>
         (function(){
-        var el = document.currentScript;
-        try { window.__adminEmail = el.getAttribute('data-email') || ''; } catch(e) { window.__adminEmail=''; }
+            var el = document.currentScript;
+            try { window.__adminEmail = el.getAttribute('data-email') || ''; } catch(e) { window.__adminEmail=''; }
+            if (!window.__adminEmail) {
+                try {
+                    fetch('/api/me', { credentials: 'same-origin' }).then(function(resp){ if (!resp.ok) return null; return resp.json(); }).then(function(js){ if (js && js.email && js.admin) window.__adminEmail = js.email || ''; }).catch(function(){});
+                } catch(e) {}
+            }
         })();
     </script>
     <script id="levels-data" type="application/json">{{.LevelsData}}</script>

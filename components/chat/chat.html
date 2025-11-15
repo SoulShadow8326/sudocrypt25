@@ -2,11 +2,15 @@
 <link rel="stylesheet" href="/components/chat/chat.css">
     <script>
         (function () {
-            function getCookie(name) {
-                const match = document.cookie.match(new RegExp('(?:^|; )' + name.replace(/([.$?*|{}()\[\]\\\/\+^])/g, '\\$1') + '=([^;]*)'));
-                return match ? decodeURIComponent(match[1]) : '';
-            }
-            window.__userEmail = getCookie('email') || '';
+            window.__userEmail = '';
+            try {
+                fetch('/api/me', { credentials: 'same-origin' }).then(function (resp) {
+                    if (!resp.ok) return null;
+                    return resp.json();
+                }).then(function (js) {
+                    if (js && js.email) window.__userEmail = js.email || '';
+                }).catch(function () {});
+            } catch (e) {}
         })();
     </script>
     <div id="chatToggleBtn">

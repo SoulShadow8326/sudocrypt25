@@ -184,6 +184,7 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	http.HandleFunc("/api/message/send", func(w http.ResponseWriter, r *http.Request) {
 		handlers.SendMessageHandler(dbConn, admins)(w, r)
 	})
+	http.HandleFunc("/api/me", handlers.MeHandler(dbConn, admins))
 	http.HandleFunc("/api/logs", handlers.LogsHandler(dbConn, admins))
 	http.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("session_id")
