@@ -10,5 +10,11 @@
     "alt": "Athena Education",
     "link": "https://www.athenaeducation.co.in/",
     "height": "200px"
+  },
+  {
+    "imageUrl": "/assets/xyz.png",
+    "alt": "Cubelelo",
+    "link": "https://www.gen.xyz/",
+    "height": "100px"
   }
 ]
