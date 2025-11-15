@@ -206,12 +206,11 @@ func SubmitHandler(dbConn *sql.DB) http.HandlerFunc {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		emailC, err := r.Cookie("email")
-		if err != nil || emailC.Value == "" {
+		email, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		email := emailC.Value
 
 		acctRaw, err := dbpkg.Get(dbConn, "accounts", email)
 		var acct map[string]interface{}
@@ -272,7 +271,6 @@ func SubmitHandler(dbConn *sql.DB) http.HandlerFunc {
 			acct["progress"] = progMap
 
 			acct["levels"] = levelsMap
-			acct["last_submit"] = float64(now)
 			b, _ := json.Marshal(acct)
 			dbpkg.Set(dbConn, "accounts", email, string(b))
 
@@ -318,8 +316,13 @@ func SubmitHandler(dbConn *sql.DB) http.HandlerFunc {
 
 func AdminLevelLeadsHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c, err := r.Cookie("email")
-		if err != nil || c.Value == "" || admins == nil || !admins.IsAdmin(c.Value) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		email, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" || admins == nil || !admins.IsAdmin(email) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -422,12 +425,11 @@ func CurrentLevelHandler(dbConn *sql.DB) http.HandlerFunc {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		emailC, err := r.Cookie("email")
-		if err != nil || emailC.Value == "" {
+		email, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		email := emailC.Value
 
 		acctRaw, err := dbpkg.Get(dbConn, "accounts", email)
 		var acct map[string]interface{}

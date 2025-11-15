@@ -26,12 +26,12 @@ func LogsHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		emailC, err := r.Cookie("email")
-		if err != nil || emailC.Value == "" {
+		requester, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || requester == "" {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		requester := strings.ToLower(strings.TrimSpace(emailC.Value))
+		requester = strings.ToLower(strings.TrimSpace(requester))
 
 		q := r.URL.Query()
 		user := strings.ToLower(strings.TrimSpace(q.Get("user")))

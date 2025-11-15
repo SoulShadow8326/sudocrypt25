@@ -96,8 +96,8 @@ func AILeadHandler(dbConn *sql.DB) http.HandlerFunc {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		emailC, err := r.Cookie("email")
-		if err != nil || emailC.Value == "" {
+		emailC, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || emailC == "" {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
@@ -143,307 +143,306 @@ func AILeadHandler(dbConn *sql.DB) http.HandlerFunc {
 		if userQuestion != "" {
 			key := pickGeminiKey()
 			if key == "" {
-				// no keys available, skip the preliminary TF check
 			} else {
-			var cli *genai.Client
-			var err error
-			geminiMu.Lock()
-			prev := os.Getenv("GEMINI_API_KEY")
-			os.Setenv("GEMINI_API_KEY", key)
-			cli, err = genai.NewClient(context.Background(), nil)
-			os.Setenv("GEMINI_API_KEY", prev)
-			geminiMu.Unlock()
-			if err != nil {
-				http.Error(w, "llm client error", http.StatusInternalServerError)
-				return
-			}
-			ctx2, cancel2 := context.WithTimeout(context.Background(), 8*time.Second)
-			checkPrompt := "Is the following user question a yes/no (true/false) question? Reply with ONLY the word true or false (lowercase).\n\nQuestion:\n" + userQuestion
-			res2, err := cli.Models.GenerateContent(ctx2, "gemini-2.5-flash", genai.Text(checkPrompt), nil)
-			cancel2()
-			if err != nil || res2 == nil {
-			} else {
-				checkOut := strings.TrimSpace(res2.Text())
-				re := regexp.MustCompile(`(?i)\b(true|false)\b`)
-				cm := re.FindStringSubmatch(checkOut)
-				isTF := false
-				if len(cm) >= 2 {
-					isTF = strings.ToLower(cm[1]) == "true"
-				} else {
-					re2 := regexp.MustCompile(`(?i)\b(yes|no)\b`)
-					cm2 := re2.FindStringSubmatch(checkOut)
-					if len(cm2) >= 2 {
-						isTF = strings.ToLower(cm2[1]) == "yes"
-					}
-				}
-				if !isTF {
-					http.Error(w, "Please ask a True or False question for the AI to respond", http.StatusBadRequest)
+				var cli *genai.Client
+				var err error
+				geminiMu.Lock()
+				prev := os.Getenv("GEMINI_API_KEY")
+				os.Setenv("GEMINI_API_KEY", key)
+				cli, err = genai.NewClient(context.Background(), nil)
+				os.Setenv("GEMINI_API_KEY", prev)
+				geminiMu.Unlock()
+				if err != nil {
+					http.Error(w, "llm client error", http.StatusInternalServerError)
 					return
 				}
-			}
-		}
-
-		userEmail := strings.ToLower(emailC.Value)
-		msgsMap, _ := dbpkg.GetAll(dbConn, "messages")
-		history := make([]struct {
-			ts      int64
-			from    string
-			to      string
-			content string
-		}, 0)
-		for _, v := range msgsMap {
-			var mm map[string]interface{}
-			if json.Unmarshal([]byte(v), &mm) != nil {
-				continue
-			}
-			lid := ""
-			if x, ok := mm["level_id"].(string); ok {
-				lid = x
-			}
-			if lid == "" {
-				if x, ok := mm["level"].(string); ok {
-					lid = x
-				}
-			}
-			if lid == "" {
-				if x, ok := mm["LevelID"].(string); ok {
-					lid = x
-				}
-			}
-			if lid != lvlID {
-				continue
-			}
-			from := ""
-			if x, ok := mm["from"].(string); ok {
-				from = x
-			}
-			to := ""
-			if x, ok := mm["to"].(string); ok {
-				to = x
-			}
-			content := ""
-			if x, ok := mm["content"].(string); ok {
-				content = x
-			}
-			var ts int64
-			if x, ok := mm["created_at"]; ok {
-				switch tv := x.(type) {
-				case float64:
-					ts = int64(tv)
-				case int64:
-					ts = tv
-				case int:
-					ts = int64(tv)
-				case string:
-					if v, err := strconv.ParseInt(tv, 10, 64); err == nil {
-						ts = v
+				ctx2, cancel2 := context.WithTimeout(context.Background(), 8*time.Second)
+				checkPrompt := "Is the following user question a yes/no (true/false) question? Reply with ONLY the word true or false (lowercase).\n\nQuestion:\n" + userQuestion
+				res2, err := cli.Models.GenerateContent(ctx2, "gemini-2.5-flash", genai.Text(checkPrompt), nil)
+				cancel2()
+				if err != nil || res2 == nil {
+				} else {
+					checkOut := strings.TrimSpace(res2.Text())
+					re := regexp.MustCompile(`(?i)\b(true|false)\b`)
+					cm := re.FindStringSubmatch(checkOut)
+					isTF := false
+					if len(cm) >= 2 {
+						isTF = strings.ToLower(cm[1]) == "true"
+					} else {
+						re2 := regexp.MustCompile(`(?i)\b(yes|no)\b`)
+						cm2 := re2.FindStringSubmatch(checkOut)
+						if len(cm2) >= 2 {
+							isTF = strings.ToLower(cm2[1]) == "yes"
+						}
+					}
+					if !isTF {
+						http.Error(w, "Please ask a True or False question for the AI to respond", http.StatusBadRequest)
+						return
 					}
 				}
 			}
-			lowFrom := strings.ToLower(from)
-			lowTo := strings.ToLower(to)
-			if lowFrom != userEmail && lowTo != userEmail && lowFrom != "admin@sudocrypt.com" && lowTo != "admin@sudocrypt.com" {
-				continue
-			}
-			history = append(history, struct {
+
+			userEmail := strings.ToLower(emailC)
+			msgsMap, _ := dbpkg.GetAll(dbConn, "messages")
+			history := make([]struct {
 				ts      int64
 				from    string
 				to      string
 				content string
-			}{ts, from, to, content})
-		}
-		if len(history) > 0 {
-			sort.Slice(history, func(i, j int) bool { return history[i].ts < history[j].ts })
-			var b strings.Builder
-			b.WriteString("\n\nConversation history:\n")
-			for _, h := range history {
-				who := "User"
-				if strings.EqualFold(h.from, "admin@sudocrypt.com") {
-					who = "Admin"
+			}, 0)
+			for _, v := range msgsMap {
+				var mm map[string]interface{}
+				if json.Unmarshal([]byte(v), &mm) != nil {
+					continue
 				}
-				if strings.EqualFold(h.from, userEmail) {
-					who = "User"
+				lid := ""
+				if x, ok := mm["level_id"].(string); ok {
+					lid = x
 				}
-				b.WriteString(fmt.Sprintf("%s: %s\n", who, h.content))
-			}
-			promptText = promptText + b.String()
-		}
-
-		var textOut string
-		var lastErr string
-		for attempt := 0; attempt < 2; attempt++ {
-			key := pickGeminiKey()
-			if key == "" {
-				lastErr = "no api keys"
-				break
-			}
-
-			var cli *genai.Client
-			var err error
-			geminiMu.Lock()
-			prev := os.Getenv("GEMINI_API_KEY")
-			os.Setenv("GEMINI_API_KEY", key)
-			cli, err = genai.NewClient(context.Background(), nil)
-			os.Setenv("GEMINI_API_KEY", prev)
-			geminiMu.Unlock()
-			if err != nil {
-				lastErr = "llm client error: " + err.Error()
-				fmt.Println("ai: genai.NewClient error:", err)
-				continue
-			}
-
-			ctx2, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-			res, err := cli.Models.GenerateContent(ctx2, "gemini-2.5-flash", genai.Text(promptText), nil)
-			cancel()
-			if err != nil {
-				lastErr = "llm error: " + err.Error()
-				fmt.Println("ai: GenerateContent error:", err)
-				continue
-			}
-			if res == nil {
-				lastErr = "empty response"
-				fmt.Println("ai: empty res")
-				continue
-			}
-			textOut = strings.TrimSpace(res.Text())
-			if textOut == "" {
-				lastErr = "empty response"
-				fmt.Println("ai: empty text")
-				continue
-			}
-			re := regexp.MustCompile(`(?i)\b(true|false)\b`)
-			m := re.FindStringSubmatch(textOut)
-			if len(m) >= 2 {
-				val := strings.ToLower(m[1]) == "true"
-
-				userEmail := strings.ToLower(emailC.Value)
-				userQuestion := strings.TrimSpace(payload["question"])
-				if userQuestion != "" {
-					userVal := strings.Join([]string{userEmail, "admin@sudocrypt.com", lvlID, "lead", userQuestion}, "|")
-					_ = dbpkg.Set(dbConn, "messages", userEmail, userVal)
-				}
-				aiContent := "false"
-				if val {
-					aiContent = "true"
-				}
-				aiVal := strings.Join([]string{"admin@sudocrypt.com", userEmail, lvlID, "lead", aiContent}, "|")
-				_ = dbpkg.Set(dbConn, "messages", userEmail, aiVal)
-
-				if val {
-					acctRaw, err := dbpkg.Get(dbConn, "accounts", userEmail)
-					var acct map[string]interface{}
-					if err == nil {
-						json.Unmarshal([]byte(acctRaw), &acct)
-					} else {
-						acct = map[string]interface{}{"levels": map[string]float64{"cryptic": 0, "ctf": 0}}
+				if lid == "" {
+					if x, ok := mm["level"].(string); ok {
+						lid = x
 					}
-					progMap := map[string][]interface{}{}
-					if pm, ok := acct["progress"].(map[string]interface{}); ok {
-						for k, v := range pm {
-							if arr2, ok2 := v.([]interface{}); ok2 && len(arr2) >= 2 {
-								progMap[k] = []interface{}{arr2[0], arr2[1]}
-							}
-						}
-					} else if p, ok := acct["progress"].([]interface{}); ok && len(p) >= 2 {
-						progMap["cryptic"] = []interface{}{p[0], p[1]}
+				}
+				if lid == "" {
+					if x, ok := mm["LevelID"].(string); ok {
+						lid = x
 					}
-					levelsMap := map[string]float64{}
-					if lm, ok := acct["levels"].(map[string]interface{}); ok {
-						for k, v := range lm {
-							if vf, ok2 := v.(float64); ok2 {
-								levelsMap[k] = vf
-							}
+				}
+				if lid != lvlID {
+					continue
+				}
+				from := ""
+				if x, ok := mm["from"].(string); ok {
+					from = x
+				}
+				to := ""
+				if x, ok := mm["to"].(string); ok {
+					to = x
+				}
+				content := ""
+				if x, ok := mm["content"].(string); ok {
+					content = x
+				}
+				var ts int64
+				if x, ok := mm["created_at"]; ok {
+					switch tv := x.(type) {
+					case float64:
+						ts = int64(tv)
+					case int64:
+						ts = tv
+					case int:
+						ts = int64(tv)
+					case string:
+						if v, err := strconv.ParseInt(tv, 10, 64); err == nil {
+							ts = v
 						}
 					}
-					partsArr := arr
-					partsLower := make([]string, 0)
-					for _, p := range partsArr {
-						partsLower = append(partsLower, strings.ToLower(p))
+				}
+				lowFrom := strings.ToLower(from)
+				lowTo := strings.ToLower(to)
+				if lowFrom != userEmail && lowTo != userEmail && lowFrom != "admin@sudocrypt.com" && lowTo != "admin@sudocrypt.com" {
+					continue
+				}
+				history = append(history, struct {
+					ts      int64
+					from    string
+					to      string
+					content string
+				}{ts, from, to, content})
+			}
+			if len(history) > 0 {
+				sort.Slice(history, func(i, j int) bool { return history[i].ts < history[j].ts })
+				var b strings.Builder
+				b.WriteString("\n\nConversation history:\n")
+				for _, h := range history {
+					who := "User"
+					if strings.EqualFold(h.from, "admin@sudocrypt.com") {
+						who = "Admin"
 					}
-					partsTok := regexp.MustCompile(`[A-Za-z0-9\.]+`).FindAllString(strings.ToLower(userQuestion), -1)
-					matchedIdx := -1
-					if len(partsLower) > 0 && len(partsTok) > 0 {
-						qstr := strings.ToLower(userQuestion)
-						for i, p := range partsLower {
-							if p == "" {
-								continue
+					if strings.EqualFold(h.from, userEmail) {
+						who = "User"
+					}
+					b.WriteString(fmt.Sprintf("%s: %s\n", who, h.content))
+				}
+				promptText = promptText + b.String()
+			}
+
+			var textOut string
+			var lastErr string
+			for attempt := 0; attempt < 2; attempt++ {
+				key := pickGeminiKey()
+				if key == "" {
+					lastErr = "no api keys"
+					break
+				}
+
+				var cli *genai.Client
+				var err error
+				geminiMu.Lock()
+				prev := os.Getenv("GEMINI_API_KEY")
+				os.Setenv("GEMINI_API_KEY", key)
+				cli, err = genai.NewClient(context.Background(), nil)
+				os.Setenv("GEMINI_API_KEY", prev)
+				geminiMu.Unlock()
+				if err != nil {
+					lastErr = "llm client error: " + err.Error()
+					fmt.Println("ai: genai.NewClient error:", err)
+					continue
+				}
+
+				ctx2, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+				res, err := cli.Models.GenerateContent(ctx2, "gemini-2.5-flash", genai.Text(promptText), nil)
+				cancel()
+				if err != nil {
+					lastErr = "llm error: " + err.Error()
+					fmt.Println("ai: GenerateContent error:", err)
+					continue
+				}
+				if res == nil {
+					lastErr = "empty response"
+					fmt.Println("ai: empty res")
+					continue
+				}
+				textOut = strings.TrimSpace(res.Text())
+				if textOut == "" {
+					lastErr = "empty response"
+					fmt.Println("ai: empty text")
+					continue
+				}
+				re := regexp.MustCompile(`(?i)\b(true|false)\b`)
+				m := re.FindStringSubmatch(textOut)
+				if len(m) >= 2 {
+					val := strings.ToLower(m[1]) == "true"
+
+					userEmail := strings.ToLower(emailC)
+					userQuestion := strings.TrimSpace(payload["question"])
+					if userQuestion != "" {
+						userVal := strings.Join([]string{userEmail, "admin@sudocrypt.com", lvlID, "lead", userQuestion}, "|")
+						_ = dbpkg.Set(dbConn, "messages", userEmail, userVal)
+					}
+					aiContent := "false"
+					if val {
+						aiContent = "true"
+					}
+					aiVal := strings.Join([]string{"admin@sudocrypt.com", userEmail, lvlID, "lead", aiContent}, "|")
+					_ = dbpkg.Set(dbConn, "messages", userEmail, aiVal)
+
+					if val {
+						acctRaw, err := dbpkg.Get(dbConn, "accounts", userEmail)
+						var acct map[string]interface{}
+						if err == nil {
+							json.Unmarshal([]byte(acctRaw), &acct)
+						} else {
+							acct = map[string]interface{}{"levels": map[string]float64{"cryptic": 0, "ctf": 0}}
+						}
+						progMap := map[string][]interface{}{}
+						if pm, ok := acct["progress"].(map[string]interface{}); ok {
+							for k, v := range pm {
+								if arr2, ok2 := v.([]interface{}); ok2 && len(arr2) >= 2 {
+									progMap[k] = []interface{}{arr2[0], arr2[1]}
+								}
 							}
-							if strings.Contains(p, qstr) || strings.Contains(qstr, p) {
-								matchedIdx = i
-								break
+						} else if p, ok := acct["progress"].([]interface{}); ok && len(p) >= 2 {
+							progMap["cryptic"] = []interface{}{p[0], p[1]}
+						}
+						levelsMap := map[string]float64{}
+						if lm, ok := acct["levels"].(map[string]interface{}); ok {
+							for k, v := range lm {
+								if vf, ok2 := v.(float64); ok2 {
+									levelsMap[k] = vf
+								}
 							}
-							for _, tok := range partsTok {
-								if len(tok) < 2 {
+						}
+						partsArr := arr
+						partsLower := make([]string, 0)
+						for _, p := range partsArr {
+							partsLower = append(partsLower, strings.ToLower(p))
+						}
+						partsTok := regexp.MustCompile(`[A-Za-z0-9\.]+`).FindAllString(strings.ToLower(userQuestion), -1)
+						matchedIdx := -1
+						if len(partsLower) > 0 && len(partsTok) > 0 {
+							qstr := strings.ToLower(userQuestion)
+							for i, p := range partsLower {
+								if p == "" {
 									continue
 								}
-								if strings.Contains(p, tok) {
+								if strings.Contains(p, qstr) || strings.Contains(qstr, p) {
 									matchedIdx = i
 									break
 								}
+								for _, tok := range partsTok {
+									if len(tok) < 2 {
+										continue
+									}
+									if strings.Contains(p, tok) {
+										matchedIdx = i
+										break
+									}
+								}
+								if matchedIdx != -1 {
+									break
+								}
 							}
-							if matchedIdx != -1 {
-								break
+						}
+						partsIdx := matchedIdx
+						partsCount := len(partsLower)
+						partsIdxValid := partsIdx >= 0 && partsIdx < partsCount
+						parts := strings.SplitN(lvlID, "-", 2)
+						typ := "cryptic"
+						if len(parts) == 2 {
+							typ = parts[0]
+						}
+						curr := 0
+						if v, ok := levelsMap[typ]; ok {
+							curr = int(v)
+						}
+						expectedLevel := fmt.Sprintf("%s-%d", typ, curr)
+						var progLevel string
+						var progCheckpoint float64
+						if pr, ok := progMap[typ]; ok && len(pr) >= 2 {
+							if s, ok2 := pr[0].(string); ok2 {
+								progLevel = s
+							}
+							if n, ok2 := pr[1].(float64); ok2 {
+								progCheckpoint = n
+							}
+						} else {
+							progLevel = expectedLevel
+							progCheckpoint = 0
+						}
+						if progLevel != expectedLevel {
+							progLevel = expectedLevel
+							progCheckpoint = 0
+						}
+						if partsIdxValid {
+							nextCheckpoint := int(progCheckpoint) + 1
+							if partsIdx == nextCheckpoint {
+								progCheckpoint = float64(partsIdx)
+								if progCheckpoint > 9 {
+									progCheckpoint = 9
+								}
+								progMap[typ] = []interface{}{progLevel, progCheckpoint}
+								acct["progress"] = progMap
+								b, _ := json.Marshal(acct)
+								_ = dbpkg.Set(dbConn, "accounts", userEmail, string(b))
 							}
 						}
 					}
-					partsIdx := matchedIdx
-					partsCount := len(partsLower)
-					partsIdxValid := partsIdx >= 0 && partsIdx < partsCount
-					parts := strings.SplitN(lvlID, "-", 2)
-					typ := "cryptic"
-					if len(parts) == 2 {
-						typ = parts[0]
-					}
-					curr := 0
-					if v, ok := levelsMap[typ]; ok {
-						curr = int(v)
-					}
-					expectedLevel := fmt.Sprintf("%s-%d", typ, curr)
-					var progLevel string
-					var progCheckpoint float64
-					if pr, ok := progMap[typ]; ok && len(pr) >= 2 {
-						if s, ok2 := pr[0].(string); ok2 {
-							progLevel = s
-						}
-						if n, ok2 := pr[1].(float64); ok2 {
-							progCheckpoint = n
-						}
-					} else {
-						progLevel = expectedLevel
-						progCheckpoint = 0
-					}
-					if progLevel != expectedLevel {
-						progLevel = expectedLevel
-						progCheckpoint = 0
-					}
-					if partsIdxValid {
-						nextCheckpoint := int(progCheckpoint) + 1
-						if partsIdx == nextCheckpoint {
-							progCheckpoint = float64(partsIdx)
-							if progCheckpoint > 9 {
-								progCheckpoint = 9
-							}
-							progMap[typ] = []interface{}{progLevel, progCheckpoint}
-							acct["progress"] = progMap
-							b, _ := json.Marshal(acct)
-							_ = dbpkg.Set(dbConn, "accounts", userEmail, string(b))
-						}
-					}
-				}
 
-				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]bool{"result": val})
+					w.Header().Set("Content-Type", "application/json")
+					json.NewEncoder(w).Encode(map[string]bool{"result": val})
+					return
+				}
+				lastErr = "invalid response: " + textOut
+				fmt.Println("ai: invalid response, textOut=", textOut)
+			}
+
+			if lastErr == "no api keys" {
+				http.Error(w, lastErr, http.StatusInternalServerError)
 				return
 			}
-			lastErr = "invalid response: " + textOut
-			fmt.Println("ai: invalid response, textOut=", textOut)
-		}
-
-		if lastErr == "no api keys" {
 			http.Error(w, lastErr, http.StatusInternalServerError)
-			return
 		}
-		http.Error(w, lastErr, http.StatusInternalServerError)
 	}
-}
 }

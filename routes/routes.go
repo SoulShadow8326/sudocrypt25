@@ -28,7 +28,6 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 		_, err := r.Cookie("session_id")
 		auth := err == nil
 		td := template.TemplateData{PageTitle: "Home", CurrentPath: r.URL.Path, TimeGateStart: os.Getenv("TIMEGATE_START"), IsAuthenticated: auth}
-		// load sponsors from assets JSON
 		type sRaw struct {
 			ImageUrl string `json:"imageUrl"`
 			Alt      string `json:"alt"`
@@ -95,6 +94,7 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 		}
 	})
 	http.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
+		_ = handlers.DeleteSession(dbConn, r)
 		cookie := &http.Cookie{Name: "session_id", Value: "", Path: "/", HttpOnly: true, Expires: time.Unix(0, 0), MaxAge: -1}
 		http.SetCookie(w, cookie)
 		http.Redirect(w, r, "/", http.StatusFound)
@@ -107,15 +107,14 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 		}
 		auth := true
 		if !handlers.IsTimeGateOpen() {
-			c, err := r.Cookie("email")
-			if err != nil || c.Value == "" || admins == nil || !admins.IsAdmin(c.Value) {
+			email, err := handlers.GetEmailFromRequest(dbConn, r)
+			if err != nil || email == "" || admins == nil || !admins.IsAdmin(email) {
 				http.Redirect(w, r, "/timegate?toast=1&from=/play", http.StatusFound)
 				return
 			}
 		}
 		td := template.TemplateData{PageTitle: "Play", CurrentPath: r.URL.Path, IsAuthenticated: auth, ShowAnnouncements: true}
-		if c2, err := r.Cookie("email"); err == nil && c2.Value != "" {
-			email := c2.Value
+		if email, err := handlers.GetEmailFromRequest(dbConn, r); err == nil && email != "" {
 			td.UserEmail = email
 			acctRaw, err := dbpkg.Get(dbConn, "accounts", email)
 			if err == nil {
@@ -156,8 +155,8 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 		}
 		auth := true
 		if !handlers.IsTimeGateOpen() {
-			c, err := r.Cookie("email")
-			if err != nil || c.Value == "" || admins == nil || !admins.IsAdmin(c.Value) {
+			email, err := handlers.GetEmailFromRequest(dbConn, r)
+			if err != nil || email == "" || admins == nil || !admins.IsAdmin(email) {
 				http.Redirect(w, r, "/timegate?toast=1&from=/leaderboard", http.StatusFound)
 				return
 			}
@@ -193,8 +192,7 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 			return
 		}
 		auth := true
-		c2, err := r.Cookie("email")
-		if err != nil || c2.Value == "" || admins == nil || !admins.IsAdmin(c2.Value) {
+		if email, err := handlers.GetEmailFromRequest(dbConn, r); err != nil || email == "" || admins == nil || !admins.IsAdmin(email) {
 			http.Redirect(w, r, "/timegate?toast=1&from=/admin", http.StatusFound)
 			return
 		}
@@ -217,8 +215,7 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 			return
 		}
 		auth := true
-		c2, err := r.Cookie("email")
-		if err != nil || c2.Value == "" || admins == nil || !admins.IsAdmin(c2.Value) {
+		if email, err := handlers.GetEmailFromRequest(dbConn, r); err != nil || email == "" || admins == nil || !admins.IsAdmin(email) {
 			http.Redirect(w, r, "/timegate?toast=1&from=/dashboard", http.StatusFound)
 			return
 		}

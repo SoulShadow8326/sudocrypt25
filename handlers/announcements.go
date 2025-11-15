@@ -87,12 +87,11 @@ func SetAnnouncementHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		emailC, err := r.Cookie("email")
-		if err != nil || emailC.Value == "" {
+		email, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		email := emailC.Value
 		acctRaw, _ := db.Get(dbConn, "accounts", email)
 		var acct map[string]interface{}
 		if acctRaw != "" {
@@ -145,12 +144,11 @@ func DeleteAnnouncementHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc 
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		emailC, err := r.Cookie("email")
-		if err != nil || emailC.Value == "" {
+		email, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		email := emailC.Value
 		acctRaw, _ := db.Get(dbConn, "accounts", email)
 		var acct map[string]interface{}
 		if acctRaw != "" {
@@ -189,12 +187,11 @@ func AdminCreateAnnouncementFormHandler(dbConn *sql.DB, admins *Admins) http.Han
 			http.Redirect(w, r, "/auth?toast=1&from=/admin", http.StatusFound)
 			return
 		}
-		emailC, err := r.Cookie("email")
-		if err != nil || emailC.Value == "" {
+		email, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" {
 			http.Redirect(w, r, "/auth?toast=1&from=/admin", http.StatusFound)
 			return
 		}
-		email := emailC.Value
 		acctRaw, _ := db.Get(dbConn, "accounts", email)
 		var acct map[string]interface{}
 		if acctRaw != "" {
@@ -247,12 +244,11 @@ func AdminDeleteAnnouncementFormHandler(dbConn *sql.DB, admins *Admins) http.Han
 			http.Redirect(w, r, "/auth?toast=1&from=/admin", http.StatusFound)
 			return
 		}
-		emailC, err := r.Cookie("email")
-		if err != nil || emailC.Value == "" {
+		email, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" {
 			http.Redirect(w, r, "/auth?toast=1&from=/admin", http.StatusFound)
 			return
 		}
-		email := emailC.Value
 		acctRaw, _ := db.Get(dbConn, "accounts", email)
 		var acct map[string]interface{}
 		if acctRaw != "" {

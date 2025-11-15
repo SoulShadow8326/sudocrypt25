@@ -8,9 +8,6 @@ import (
 	"time"
 )
 
-//sort
-//init
-
 func InitDB(d *sql.DB) error {
 	schema := `
 CREATE TABLE IF NOT EXISTS users (
@@ -63,6 +60,12 @@ CREATE TABLE IF NOT EXISTS logs (
 	created_at INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id TEXT PRIMARY KEY,
+    email TEXT,
+    created_at INTEGER
+);
+
 `
 	_, err := d.Exec(schema)
 	return err
@@ -109,6 +112,9 @@ func Set(d *sql.DB, namespace, key, value string) error {
 		return err
 	case "levels":
 		_, err := d.Exec(`INSERT OR REPLACE INTO levels(id, data, created_at) VALUES(?,?,?)`, key, value, now)
+		return err
+	case "sessions":
+		_, err := d.Exec(`INSERT OR REPLACE INTO sessions(session_id, email, created_at) VALUES(?,?,?)`, key, value, now)
 		return err
 	case "announcements":
 		_, err := d.Exec(`INSERT OR REPLACE INTO announcements(id, data, created_at) VALUES(?,?,?)`, key, value, now)
@@ -188,6 +194,8 @@ func Get(d *sql.DB, namespace, key string) (string, error) {
 		query = `SELECT data FROM users WHERE email = ?`
 	case "levels":
 		query = `SELECT data FROM levels WHERE id = ?`
+	case "sessions":
+		query = `SELECT email FROM sessions WHERE session_id = ?`
 	case "announcements":
 		query = `SELECT data FROM announcements WHERE id = ?`
 	case "attempt_logs":
@@ -278,6 +286,9 @@ func Delete(d *sql.DB, namespace, key string) error {
 		return nil
 	case "levels":
 		_, err := d.Exec(`DELETE FROM levels WHERE id = ?`, key)
+		return err
+	case "sessions":
+		_, err := d.Exec(`DELETE FROM sessions WHERE session_id = ?`, key)
 		return err
 	case "announcements":
 		_, err := d.Exec(`DELETE FROM announcements WHERE id = ?`, key)

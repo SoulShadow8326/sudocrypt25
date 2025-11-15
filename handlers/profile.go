@@ -25,12 +25,11 @@ func UpdateBioHandler(dbConn *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		emailCookie, err := r.Cookie("email")
-		if err != nil || emailCookie.Value == "" {
+		email, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		email := emailCookie.Value
 
 		var req struct {
 			Bio       string `json:"bio"`
@@ -95,8 +94,8 @@ func UserProfileHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 		}
 
 		currentUserEmail := ""
-		if emailCookie, err := r.Cookie("email"); err == nil {
-			currentUserEmail = emailCookie.Value
+		if ce, err := GetEmailFromRequest(dbConn, r); err == nil {
+			currentUserEmail = ce
 		}
 
 		isOwnProfile := email == currentUserEmail

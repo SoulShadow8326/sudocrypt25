@@ -13,8 +13,13 @@ import (
 
 func AdminUpdateUserProgressHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c, err := r.Cookie("email")
-		if err != nil || c.Value == "" || admins == nil || !admins.IsAdmin(c.Value) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		requester, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || requester == "" || admins == nil || !admins.IsAdmin(requester) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -203,8 +208,13 @@ func AdminUpdateUserProgressHandler(dbConn *sql.DB, admins *Admins) http.Handler
 
 func AdminListUsersHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c, err := r.Cookie("email")
-		if err != nil || c.Value == "" || admins == nil || !admins.IsAdmin(c.Value) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		requester, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || requester == "" || admins == nil || !admins.IsAdmin(requester) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -291,8 +301,13 @@ func AdminListUsersHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 
 func AdminUserActionHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c, err := r.Cookie("email")
-		if err != nil || c.Value == "" || admins == nil || !admins.IsAdmin(c.Value) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		requester, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || requester == "" || admins == nil || !admins.IsAdmin(requester) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}

@@ -61,8 +61,13 @@ func HintsHandler(dbConn *sql.DB) http.HandlerFunc {
 
 func AdminHintsHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c2, err := r.Cookie("email")
-		if err != nil || c2.Value == "" || admins == nil || !admins.IsAdmin(c2.Value) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		email, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" || admins == nil || !admins.IsAdmin(email) {
 			http.Error(w, "unauthorized", http.StatusUnauthorized)
 			return
 		}

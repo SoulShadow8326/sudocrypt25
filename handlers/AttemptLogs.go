@@ -18,14 +18,12 @@ func AttemptLog(dbConn *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		emailCookie, err := r.Cookie("email")
-		if err != nil || emailCookie.Value == "" {
+		email, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		email := emailCookie.Value
 		if r.Method == "POST" {
-			//----
 			var req struct {
 				Log   string `json:"logs"`
 				Typpe string `json:"type"`
@@ -46,7 +44,6 @@ func AttemptLog(dbConn *sql.DB) http.HandlerFunc {
 				return
 			}
 
-			//entry in the form -> (email) | (log)-(type)-(time) ...
 			acct["logs"] = acct["logs"].(string) + "\n" + req.Log + "+" + req.Typpe + "+" + strconv.FormatInt(time.Now().Unix(), 10)
 
 			acctBytes, _ := json.Marshal(acct)

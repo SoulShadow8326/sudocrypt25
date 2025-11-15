@@ -215,11 +215,10 @@ func ApiAuthHandler(dbConn *sql.DB) http.HandlerFunc {
 				json.NewEncoder(w).Encode(map[string]string{"error": "db error"})
 				return
 			}
-			sid := hashHex(fmt.Sprintf("%s:%d", email, time.Now().UnixNano()))
-			cookie := &http.Cookie{Name: "session_id", Value: sid, Path: "/", HttpOnly: true}
-			http.SetCookie(w, cookie)
-			emailCookie := &http.Cookie{Name: "email", Value: email, Path: "/", HttpOnly: true}
-			http.SetCookie(w, emailCookie)
+			sid, err := CreateSession(dbConn, email)
+			if err == nil {
+				SetSessionCookie(w, sid)
+			}
 			db.Set(dbConn, "emails", email, fmt.Sprintf("%d", time.Now().Unix()))
 			json.NewEncoder(w).Encode(map[string]bool{"success": true})
 			lb := map[string]interface{}{"email": email, "time": float64(time.Now().Unix()), "points": 0, "name": name}
@@ -257,11 +256,10 @@ func ApiAuthHandler(dbConn *sql.DB) http.HandlerFunc {
 				json.NewEncoder(w).Encode(map[string]string{"error": "incorrect password"})
 				return
 			}
-			sid := hashHex(fmt.Sprintf("%s:%d", email, time.Now().UnixNano()))
-			cookie := &http.Cookie{Name: "session_id", Value: sid, Path: "/", HttpOnly: true}
-			http.SetCookie(w, cookie)
-			emailCookie := &http.Cookie{Name: "email", Value: email, Path: "/", HttpOnly: true}
-			http.SetCookie(w, emailCookie)
+			sid, err := CreateSession(dbConn, email)
+			if err == nil {
+				SetSessionCookie(w, sid)
+			}
 			json.NewEncoder(w).Encode(map[string]bool{"success": true})
 			return
 		}

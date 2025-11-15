@@ -46,13 +46,11 @@ func SendMessageHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			}
 		}
 
-		emailC, err := r.Cookie("email")
-		if err != nil || emailC.Value == "" {
+		from, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || from == "" {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-
-		from := emailC.Value
 		isAdmin := admins != nil && admins.IsAdmin(from)
 		displayFrom := from
 		to := strings.TrimSpace(payload["to"])
@@ -96,12 +94,11 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		emailC, err := r.Cookie("email")
-		if err != nil || emailC.Value == "" {
+		requesterRaw, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || requesterRaw == "" {
 			http.Error(w, "unauthenticated", http.StatusUnauthorized)
 			return
 		}
-		requesterRaw := emailC.Value
 		requester := strings.ToLower(requesterRaw)
 
 		all, err := dbpkg.GetAll(dbConn, "messages")

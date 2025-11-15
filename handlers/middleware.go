@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	dbpkg "sudocrypt25/db"
 )
 
 type contextKey string
@@ -41,7 +43,19 @@ func AuthMiddleware(dbConn *sql.DB) func(http.Handler) http.Handler {
 				http.Redirect(w, r, "/auth", http.StatusFound)
 				return
 			}
-			ctx := context.WithValue(r.Context(), userContextKey, map[string]interface{}{"session_id": sid})
+			email, err := dbpkg.Get(dbConn, "sessions", sid)
+			if err != nil || email == "" {
+				accept := r.Header.Get("Accept")
+				if strings.Contains(accept, "application/json") {
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusUnauthorized)
+					w.Write([]byte(`{"error":"invalid_session"}`))
+					return
+				}
+				http.Redirect(w, r, "/auth", http.StatusFound)
+				return
+			}
+			ctx := context.WithValue(r.Context(), userContextKey, map[string]interface{}{"session_id": sid, "email": email})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
