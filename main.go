@@ -55,10 +55,13 @@ func main() {
 	routes.InitRoutes(dbConn, admins)
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = "8080"
+		port = "443"
 	}
 	log.Println("listening on :" + port)
 	log.Printf("http://localhost:%s\n", port)
-	log.Fatal(http.ListenAndServe(":"+port,nil))
+	log.Fatal(http.ListenAndServeTLS("0.0.0.0:"+port,
+		"/etc/letsencrypt/live/sudocrypt.com/fullchain.pem",
+        "/etc/letsencrypt/live/sudocrypt.com/privkey.pem",
+		 nil))
 }
 
