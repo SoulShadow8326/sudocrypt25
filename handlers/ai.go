@@ -176,7 +176,16 @@ func AILeadHandler(dbConn *sql.DB) http.HandlerFunc {
 						}
 					}
 					if !isTF {
-						http.Error(w, "Please ask a True or False question for the AI to respond", http.StatusBadRequest)
+						userEmail := strings.ToLower(emailC)
+						userQuestion := strings.TrimSpace(payload["question"])
+						if userQuestion != "" {
+							userVal := strings.Join([]string{userEmail, "admin@sudocrypt.com", lvlID, "lead", userQuestion}, "|")
+							_ = dbpkg.Set(dbConn, "messages", userEmail, userVal)
+						}
+						msg := "Please ask a True or False question for the AI to respond"
+						aiVal := strings.Join([]string{"admin@sudocrypt.com", userEmail, lvlID, "lead", msg}, "|")
+						_ = dbpkg.Set(dbConn, "messages", userEmail, aiVal)
+						http.Error(w, msg, http.StatusBadRequest)
 						return
 					}
 				}

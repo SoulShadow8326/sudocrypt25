@@ -287,6 +287,10 @@ async function doFetch(force) {
 							if (rem > 0) { sendBtn.disabled = true; sendBtn.style.display = 'none'; } else { sendBtn.disabled = false; sendBtn.style.display = ''; }
 						}
 						if (inputEl) inputEl.focus();
+						if (typeof Notyf !== 'undefined') {
+							const n = new Notyf({ duration: 10000, types: [{ type: 'aidisclaimer', background: '#9722e5', icon: false }] });
+							n.open({ type: 'aidisclaimer', message: 'AI Leads may be wrong due to hallucianations and stuff and that attempting to break the bot is grounds for disqualifaction and a permanent ban from Exun Clan' });
+						}
 					} else {
 						if (window.__leadsEnabledForCurrentLevel === false) {
 							if (inputEl) inputEl.disabled = true;
@@ -571,6 +575,10 @@ document.addEventListener('DOMContentLoaded', function () {
 								if (inputEl) inputEl.disabled = false;
 								if (btnEl) { btnEl.disabled = false; btnEl.style.display = ''; }
 								if (inputEl) inputEl.focus();
+								if (typeof Notyf !== 'undefined') {
+									const n = new Notyf({ duration: 200, types: [{ type: 'aidisclaimer', background: '#9722e5', icon: false }] });
+									n.open({ type: 'aidisclaimer', message: `AI leads can sometimes be incorrect due to hallucinations. Attempting to break, exploit, or misuse the bot will lead to immediate disqualification and a permanent ban from Exun Clan.` });
+								}
 							} else {
 								if (window.__leadsEnabledForCurrentLevel === false) {
 									if (inputEl) inputEl.disabled = true;
@@ -592,6 +600,71 @@ document.addEventListener('DOMContentLoaded', function () {
 		});
 	}
 	pollMessagesLoop();
+
+	const staticBtnFallback = document.querySelector('#leadsDisabledNotice button');
+	if (staticBtnFallback) {
+		staticBtnFallback.addEventListener('click', function () {
+			window.__chatSendToAI = !window.__chatSendToAI;
+			const isAI = !!window.__chatSendToAI;
+			chatCooldownMs = isAI ? 10000 : 5000;
+			staticBtnFallback.textContent = isAI ? 'AI mode: ON' : 'Ask AI';
+			staticBtnFallback.classList.toggle('active', isAI);
+			const inputEl = document.getElementById('chatInput');
+			const btnEl = document.getElementById('chatendButton');
+			if (isAI) {
+				if (inputEl) inputEl.disabled = false;
+				if (btnEl) { btnEl.disabled = false; btnEl.style.display = ''; }
+				if (inputEl) inputEl.focus();
+				if (typeof Notyf !== 'undefined') {
+					const n = new Notyf({ duration: 10000, types: [{ type: 'aidisclaimer', background: '#9722e5', icon: false }] });
+					n.open({ type: 'aidisclaimer', message: 'AI Leads may be wrong due to hallucianations and stuff and that attempting to break the bot is grounds for disqualifaction and a permanent ban from Exun Clan' });
+				}
+			} else {
+				if (window.__leadsEnabledForCurrentLevel === false) {
+					if (inputEl) inputEl.disabled = true;
+					if (btnEl) { btnEl.disabled = true; btnEl.style.display = 'none'; }
+				} else {
+					if (inputEl) inputEl.disabled = false;
+					if (btnEl) { btnEl.disabled = false; btnEl.style.display = ''; }
+				}
+			}
+		});
+	}
+
+	;(function ensureLeadsToggleHandler(){
+		const notice = document.getElementById('leadsDisabledNotice');
+		if (!notice) return;
+		const btn = notice.querySelector('button');
+		if (!btn) return;
+		const handler = function () {
+			window.__chatSendToAI = !window.__chatSendToAI;
+			const isAI = !!window.__chatSendToAI;
+			chatCooldownMs = isAI ? 10000 : 5000;
+			btn.textContent = isAI ? 'AI mode: ON' : 'Ask AI';
+			btn.classList.toggle('active', isAI);
+			const inputEl = document.getElementById('chatInput');
+			const btnEl = document.getElementById('chatendButton');
+			if (isAI) {
+				if (inputEl) inputEl.disabled = false;
+				if (btnEl) { btnEl.disabled = false; btnEl.style.display = ''; }
+				if (inputEl) inputEl.focus();
+				if (typeof Notyf !== 'undefined') {
+					const n = new Notyf({ duration: 10000, types: [{ type: 'aidisclaimer', background: '#9722e5', icon: false }] });
+					n.open({ type: 'aidisclaimer', message: 'AI Leads may be wrong due to hallucianations and stuff and that attempting to break the bot is grounds for disqualifaction and a permanent ban from Exun Clan' });
+				}
+			} else {
+				if (window.__leadsEnabledForCurrentLevel === false) {
+					if (inputEl) inputEl.disabled = true;
+					if (btnEl) { btnEl.disabled = true; btnEl.style.display = 'none'; }
+				} else {
+					if (inputEl) inputEl.disabled = false;
+					if (btnEl) { btnEl.disabled = false; btnEl.style.display = ''; }
+				}
+			}
+		};
+		btn.removeEventListener('click', handler);
+		btn.addEventListener('click', handler);
+	})();
 });
 
 window.switchChatTab = function(tab) {
