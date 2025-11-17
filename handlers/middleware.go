@@ -71,17 +71,61 @@ func UserFromContext(ctx context.Context) (map[string]interface{}, bool) {
 }
 
 func IsTimeGateOpen() bool {
-	if os.Getenv("DEV_BYPASS") == "1" {
-		return true
-	}
 	ds := os.Getenv("TIMEGATE_START")
 	if ds == "" {
 		ds = "2025-11-07T09:00:00+05:30"
 	}
-	t, err := time.Parse(time.RFC3339, ds)
+	start, err := time.Parse(time.RFC3339, ds)
 	if err != nil {
 		return true
 	}
+	de := os.Getenv("TIMEGATE_END")
+	var end time.Time
+	var endSet bool
+	if de != "" {
+		if e, err2 := time.Parse(time.RFC3339, de); err2 == nil {
+			end = e
+			endSet = true
+		}
+	}
 	now := time.Now()
-	return !now.Before(t)
+	if now.Before(start) {
+		return false
+	}
+	if endSet && now.After(end) {
+		return false
+	}
+	return true
+}
+
+func EventPhase() int {
+	ds := os.Getenv("TIMEGATE_START")
+	if ds == "" {
+		ds = "2025-11-07T09:00:00+05:30"
+	}
+	start, err := time.Parse(time.RFC3339, ds)
+	if err != nil {
+		return 0
+	}
+	de := os.Getenv("TIMEGATE_END")
+	var end time.Time
+	var endSet bool
+	if de != "" {
+		if e, err2 := time.Parse(time.RFC3339, de); err2 == nil {
+			end = e
+			endSet = true
+		}
+	}
+	now := time.Now()
+	if now.Before(start) {
+		return -1
+	}
+	if endSet && now.After(end) {
+		return 1
+	}
+	return 0
+}
+
+func DuringEvent() bool {
+	return EventPhase() == 0
 }

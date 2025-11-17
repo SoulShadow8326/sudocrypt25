@@ -63,6 +63,17 @@ func SendMessageHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 			http.Error(w, "missing to", http.StatusBadRequest)
 			return
 		}
+		if !isAdmin {
+			phase := EventPhase()
+			if phase == -1 {
+				http.Error(w, "The event has not commenced yet", http.StatusForbidden)
+				return
+			}
+			if phase == 1 {
+				http.Error(w, "The event has concluded", http.StatusForbidden)
+				return
+			}
+		}
 		mtype := strings.TrimSpace(payload["type"])
 		if mtype == "" {
 			mtype = "lead"

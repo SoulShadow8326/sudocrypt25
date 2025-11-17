@@ -225,8 +225,13 @@ func SubmitHandler(dbConn *sql.DB) http.HandlerFunc {
 			return
 		}
 		if admin, _ := acct["admin"].(bool); !admin {
-			if os.Getenv("EVENT_ACTIVE") == "0" {
-				http.Error(w, "event not active", http.StatusForbidden)
+			phase := EventPhase()
+			if phase == -1 {
+				http.Error(w, "The event has not commenced yet", http.StatusForbidden)
+				return
+			}
+			if phase == 1 {
+				http.Error(w, "The event has concluded", http.StatusForbidden)
 				return
 			}
 		}
