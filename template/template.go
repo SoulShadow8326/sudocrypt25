@@ -15,7 +15,10 @@ type TemplateData struct {
 	CurrentPath       string
 	User              map[string]interface{}
 	TimeGateStart     string
+	TimeGateEnd       string
 	IsAuthenticated   bool
+	IsEventOver       bool
+	IsBeforeStart     bool
 	ShowAnnouncements bool
 	LeaderboardHTML   template.HTML
 	LevelsHTML        template.HTML

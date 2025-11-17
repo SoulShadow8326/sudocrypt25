@@ -88,7 +88,10 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	http.HandleFunc("/timegate", func(w http.ResponseWriter, r *http.Request) {
 		_, err := r.Cookie("session_id")
 		auth := err == nil
-		td := template.TemplateData{PageTitle: "Time Gate", CurrentPath: r.URL.Path, TimeGateStart: os.Getenv("TIMEGATE_START"), IsAuthenticated: auth}
+		phase := handlers.EventPhase()
+		isOver := phase == 1
+		isBefore := phase == -1
+		td := template.TemplateData{PageTitle: "Time Gate", CurrentPath: r.URL.Path, TimeGateStart: os.Getenv("TIMEGATE_START"), TimeGateEnd: os.Getenv("TIMEGATE_END"), IsAuthenticated: auth, IsEventOver: isOver, IsBeforeStart: isBefore}
 		if err := template.RenderFile(w, "components/timegate.html", td); err != nil {
 			http.ServeFile(w, r, "components/timegate.html")
 		}

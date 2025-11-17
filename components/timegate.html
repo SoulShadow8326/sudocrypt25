@@ -30,6 +30,23 @@
     padding-top: 4rem;
     }
 
+    .section {
+        min-height: calc(100vh - 120px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4vw 1.5rem;
+        box-sizing: border-box;
+    }
+
+    .inner { max-width: 1000px; width: 100%; text-align: center; }
+
+    .brand-title { font-family: 'Montserrat', sans-serif; color: #ffffff; font-size: 28px; letter-spacing: -0.5px; margin-bottom: 1rem; }
+    .brand-title .ver { color: var(--primary); font-weight: 700; margin-left: 6px; }
+
+    .countdown-title { font-size: 32px; margin-bottom: 0.6rem; }
+    @media (max-width: 767px) { .countdown-title { font-size: 22px } .brand-title { font-size: 20px } }
+
     @media (max-width: 767px) {
     .inner {
         padding-top: calc(4rem + 10rem);
@@ -43,10 +60,20 @@
 
     {{template "confetti" .}}
 
-        <div id="random" class="section" style="padding-bottom: 16vw; padding-top: 4vw; height: 73% !important;">
+        <div id="random" class="section">
             <div class="transition-container">
                 <div class="inner">
+                    <div class="brand-title">Sudocrypt <span class="ver">v15.0</span></div>
+                    {{if .IsEventOver}}
+                    <h1 class="countdown-title">The Hunt Has Ended</h1>
+                    <div class="wrapper">
+                        <div id="countdown">
+                            <p style="text-align:center; font-size:18px;">Thank you for participating. The event is now officially over.</p>
+                        </div>
+                    </div>
+                    {{else}}
                     {{template "countdown" .}}
+                    {{end}}
                 </div>
             </div>
         </div>
