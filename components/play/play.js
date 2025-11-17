@@ -194,6 +194,18 @@ async function submitAnswer() {
                 data = null;
             }
             const n = new Notyf();
+            if (resp.status === 403) {
+                if (data && data.when) {
+                    const msg = data.error || (data.when === 'before' ? 'The event has not commenced yet' : 'The event has concluded');
+                    n.error(msg);
+                    setTimeout(function () { window.location = '/timegate?toast=1&from=/submit&when=' + encodeURIComponent(data.when); }, 1200);
+                    return;
+                } else {
+                    n.error('The event has concluded');
+                    setTimeout(function () { window.location = '/timegate?toast=1&from=/submit'; }, 1200);
+                    return;
+                }
+            }
             if (data && data.success === false) {
                 n.error('incorrect');
             } else {

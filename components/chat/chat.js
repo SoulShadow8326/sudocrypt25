@@ -525,7 +525,17 @@ async function sendChatMessage() {
 	if (input) input.value = '';
 
 	try {
-		await fetch('/api/message/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) });
+		const resp = await fetch('/api/message/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) });
+		if (!resp.ok) {
+			let data = null
+			try { data = await resp.json() } catch (e) { data = null }
+			if (data && data.when) {
+				const n = typeof Notyf !== 'undefined' ? new Notyf() : null
+				if (n) n.error(data.error || (data.when === 'before' ? 'The event has not commenced yet' : 'The event has concluded'))
+				setTimeout(function(){ window.location = '/timegate?toast=1&from=/send_message&when=' + encodeURIComponent(data.when); }, 1200)
+				return
+			}
+		}
 	} catch (e) {
 	}
 	if (input) input.value = '';

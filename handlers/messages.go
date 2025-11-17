@@ -66,11 +66,15 @@ func SendMessageHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 		if !isAdmin {
 			phase := EventPhase()
 			if phase == -1 {
-				http.Error(w, "The event has not commenced yet", http.StatusForbidden)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				json.NewEncoder(w).Encode(map[string]string{"error": "The event has not commenced yet", "when": "before"})
 				return
 			}
 			if phase == 1 {
-				http.Error(w, "The event has concluded", http.StatusForbidden)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				json.NewEncoder(w).Encode(map[string]string{"error": "The event has concluded", "when": "after"})
 				return
 			}
 		}
