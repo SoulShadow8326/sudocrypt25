@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	dbpkg "sudocrypt25/db"
 )
 
-func AttemptLog(dbConn *sql.DB) http.HandlerFunc {
+func AttemptLog(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("session_id")
 		if err != nil || c.Value == "" {
@@ -53,15 +54,29 @@ func AttemptLog(dbConn *sql.DB) http.HandlerFunc {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"success": true,
 				"message": "Bio updated successfully",
 			})
 		}
 		if r.Method == "GET" {
+			target := strings.TrimSpace(r.URL.Query().Get("email"))
+			if target != "" {
+				if admins == nil || !admins.IsAdmin(email) {
+					http.Error(w, "forbidden", http.StatusForbidden)
+					return
+				}
+				email = target
+			}
 			acctRaw, err := dbpkg.Get(dbConn, "attempt_logs", email)
 			if err != nil {
 				w.Header().Set("Content-Type", "application/json")
+				w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+				w.Header().Set("Pragma", "no-cache")
+				w.Header().Set("Expires", "0")
 				json.NewEncoder(w).Encode(map[string]interface{}{
 					"success": true,
 					"message": "Bio updated successfully",
@@ -77,6 +92,9 @@ func AttemptLog(dbConn *sql.DB) http.HandlerFunc {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"success": true,
 				"message": "Bio updated successfully",

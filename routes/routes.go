@@ -242,5 +242,5 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	http.HandleFunc("/api/user/update_bio", handlers.UpdateBioHandler(dbConn))
 	http.HandleFunc("/profile/", handlers.UserProfileHandler(dbConn, admins))
 
-	http.HandleFunc("/api/attempt_logs", handlers.AttemptLog(dbConn))
+	http.HandleFunc("/api/attempt_logs", handlers.AttemptLog(dbConn, admins))
 }

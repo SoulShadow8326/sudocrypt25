@@ -37,7 +37,13 @@ let allLogs = [];
 
 async function fetchAttemptLogs() {
     try {
-        const response = await fetch('/api/attempt_logs', {
+        let url = '/api/attempt_logs';
+        const profileEmailEl = document.querySelector('.profile-email');
+        if (profileEmailEl) {
+            const profileEmail = (profileEmailEl.textContent || '').trim();
+            if (profileEmail) url += '?email=' + encodeURIComponent(profileEmail);
+        }
+        const response = await fetch(url, {
             method: 'GET',
             credentials: 'include'
         });
