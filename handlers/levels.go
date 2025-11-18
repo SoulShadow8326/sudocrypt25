@@ -262,7 +262,13 @@ func SubmitHandler(dbConn *sql.DB) http.HandlerFunc {
 			return
 		}
 
-		correct := strings.TrimSpace(lvl.Answer) == strings.TrimSpace(answer)
+		correctAns := strings.TrimSpace(lvl.Answer)
+		submittedAns := strings.TrimSpace(answer)
+		if typ == "cryptic" {
+			correctAns = strings.ToLower(correctAns)
+			submittedAns = strings.ToLower(submittedAns)
+		}
+		correct := correctAns == submittedAns
 		if correct {
 			levelsMap[typ] = float64(curr + 1)
 
