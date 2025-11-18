@@ -324,8 +324,15 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 
 			out = append(out, entry)
 		}
+		aiLeadsEnabled := true
+		if v, err := dbpkg.Get(dbConn, "settings", "ai_leads"); err == nil {
+			s := strings.TrimSpace(strings.ToLower(v))
+			if s == "0" || s == "false" || s == "off" {
+				aiLeadsEnabled = false
+			}
+		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{"checksum": checksum, "announcements_checksum": annChecksum, "messages": out, "hints": hintsList, "leads_enabled": leadsEnabledForType})
+		json.NewEncoder(w).Encode(map[string]interface{}{"checksum": checksum, "announcements_checksum": annChecksum, "messages": out, "hints": hintsList, "leads_enabled": leadsEnabledForType, "ai_leads": aiLeadsEnabled})
 	}
 }
 

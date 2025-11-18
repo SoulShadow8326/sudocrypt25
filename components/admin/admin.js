@@ -211,6 +211,37 @@ if (_turnOffAll) _turnOffAll.addEventListener('click', async ()=>{
         }
     } catch(e) { if (notyf) notyf.error('Failed to turn off all leads') }
 })
+const _toggleAI = document.getElementById('toggleAILeads')
+if (_toggleAI) {
+    let currentAILeads = true
+    async function refreshAILeadsButton() {
+        try {
+            const resp = await fetch('/api/messages', { credentials: 'same-origin' })
+            if (resp && resp.ok) {
+                const dd = await resp.json().catch(()=>null)
+                if (dd && typeof dd.ai_leads !== 'undefined') currentAILeads = !!dd.ai_leads
+            }
+        } catch (e) {}
+        _toggleAI.textContent = currentAILeads ? 'AI Leads: ON' : 'AI Leads: OFF'
+        _toggleAI.classList.toggle('on', currentAILeads)
+        _toggleAI.classList.toggle('off', !currentAILeads)
+    }
+    refreshAILeadsButton()
+    _toggleAI.addEventListener('click', async ()=>{
+        const enable = !currentAILeads
+        try {
+            const res = await fetch('/api/admin/ai_leads', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body: JSON.stringify({enabled: enable})})
+            if (res && res.ok) {
+                currentAILeads = enable
+                if (notyf) notyf.success('AI leads ' + (enable ? 'enabled' : 'disabled'))
+                _toggleAI.textContent = currentAILeads ? 'AI Leads: ON' : 'AI Leads: OFF'
+                setTimeout(()=> window.location = '/admin', 350)
+            } else {
+                if (notyf) notyf.error('Failed to update AI leads')
+            }
+        } catch(e) { if (notyf) notyf.error('Failed to update AI leads') }
+    })
+}
 
 async function fetchAdminUsers() {
     try {

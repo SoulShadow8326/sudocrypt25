@@ -253,6 +253,7 @@ async function doFetch(force) {
 
 		if (typeof data.leads_enabled !== 'undefined') {
 			const leadsOn = !!data.leads_enabled;
+			const aiLeadsOn = (typeof data.ai_leads === 'undefined') ? true : !!data.ai_leads;
 			const chatInputArea = document.querySelector('.chat-input-area');
 			const inputEl = document.getElementById('chatInput');
 			const sendBtn = document.getElementById('chatendButton');
@@ -267,9 +268,7 @@ async function doFetch(force) {
 				notice.style.borderRadius = '6px';
 				notice.style.fontSize = '14px';
 				notice.style.margin = '8px';
-				notice.textContent = 'Leads have been turned off';
 				const btn = document.createElement('button');
-				btn.textContent = 'Ask AI';
 				btn.className = 'btn-primary';
 				btn.style.marginTop = '8px';
 				btn.addEventListener('click', function(){
@@ -308,7 +307,15 @@ async function doFetch(force) {
 				notice.appendChild(btn);
 				chatInputArea.appendChild(notice);
 			}
-			if (!leadsOn) {
+			if (!leadsOn && !aiLeadsOn) {
+				if (inputEl) inputEl.disabled = true;
+				if (sendBtn) { sendBtn.disabled = true; sendBtn.style.display = 'none'; }
+				if (notice) {
+					notice.style.display = '';
+					notice.textContent = 'All leads are off';
+				}
+				window.__leadsEnabledForCurrentLevel = false;
+			} else if (!leadsOn && aiLeadsOn) {
 				if (window.__chatSendToAI) {
 					if (inputEl) inputEl.disabled = false;
 					if (sendBtn) {
@@ -599,6 +606,17 @@ document.addEventListener('DOMContentLoaded', function () {
 								}
 							}
 						};
+						(async function(){
+							try {
+								const resp = await fetch('/api/messages?type=' + encodeURIComponent(levelType), { credentials: 'same-origin' });
+								if (resp.ok) {
+									const dd = await resp.json().catch(()=>null);
+									if (dd && typeof dd.ai_leads !== 'undefined' && !dd.ai_leads) {
+										b.style.display = 'none';
+									}
+								}
+							} catch (e) {}
+						})();
 					}
 				}
 			}

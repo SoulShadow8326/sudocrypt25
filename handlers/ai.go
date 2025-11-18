@@ -109,6 +109,14 @@ func AILeadHandler(dbConn *sql.DB) http.HandlerFunc {
 			r.ParseForm()
 			payload = map[string]string{"level": r.FormValue("level"), "question": r.FormValue("question")}
 		}
+		// check global ai leads setting
+		if v, err := dbpkg.Get(dbConn, "settings", "ai_leads"); err == nil {
+			if strings.TrimSpace(strings.ToLower(v)) == "0" || strings.TrimSpace(strings.ToLower(v)) == "false" {
+				http.Error(w, "ai leads disabled", http.StatusForbidden)
+				return
+			}
+		}
+
 		lvlID := strings.TrimSpace(payload["level"])
 		if lvlID == "" {
 			http.Error(w, "missing level", http.StatusBadRequest)
@@ -453,5 +461,53 @@ func AILeadHandler(dbConn *sql.DB) http.HandlerFunc {
 			}
 			http.Error(w, lastErr, http.StatusInternalServerError)
 		}
+	}
+}
+
+func ToggleAILeadsHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		email, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" || admins == nil || !admins.IsAdmin(email) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		var payload map[string]interface{}
+		if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+			defer r.Body.Close()
+			json.NewDecoder(r.Body).Decode(&payload)
+		} else {
+			r.ParseForm()
+			payload = map[string]interface{}{"enabled": r.FormValue("enabled")}
+		}
+		enabled := true
+		if v, ok := payload["enabled"]; ok && v != nil {
+			switch tv := v.(type) {
+			case bool:
+				enabled = tv
+			case string:
+				s := strings.TrimSpace(strings.ToLower(tv))
+				if s == "0" || s == "false" || s == "off" {
+					enabled = false
+				} else if s == "1" || s == "true" || s == "on" {
+					enabled = true
+				}
+			case float64:
+				enabled = int(tv) != 0
+			}
+		}
+		val := "1"
+		if !enabled {
+			val = "0"
+		}
+		if err := dbpkg.Set(dbConn, "settings", "ai_leads", val); err != nil {
+			http.Error(w, "db error", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "enabled": enabled})
 	}
 }
