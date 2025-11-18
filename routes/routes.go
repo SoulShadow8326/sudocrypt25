@@ -173,8 +173,32 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 			http.ServeFile(w, r, "components/leaderboard/leaderboard.html")
 		}
 	})
-	http.HandleFunc("/set_level", handlers.SetLevelHandler(dbConn))
-	http.HandleFunc("/delete_level", handlers.DeleteLevelHandler(dbConn))
+	http.HandleFunc("/set_level", func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		email, err := handlers.GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" || admins == nil || !admins.IsAdmin(email) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		handlers.SetLevelHandler(dbConn)(w, r)
+	})
+	http.HandleFunc("/delete_level", func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		email, err := handlers.GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" || admins == nil || !admins.IsAdmin(email) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		handlers.DeleteLevelHandler(dbConn)(w, r)
+	})
 	http.HandleFunc("/submit", handlers.SubmitHandler(dbConn))
 	http.HandleFunc("/api/play/current", handlers.CurrentLevelHandler(dbConn))
 	http.HandleFunc("/api/leaderboard", handlers.LeaderboardAPIHandler(dbConn, admins))
