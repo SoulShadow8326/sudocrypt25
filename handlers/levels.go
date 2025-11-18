@@ -472,6 +472,7 @@ func CurrentLevelHandler(dbConn *sql.DB) http.HandlerFunc {
 			return
 		}
 		lvl.Answer = ""
+		lvl.Walkthrough = ""
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(lvl)
 	}

@@ -24,6 +24,7 @@ type TemplateData struct {
 	LevelsHTML        template.HTML
 	LevelsData        template.JS
 	LevelNum          string
+	LevelAnswerHash   string
 	UserEmail         string
 	SrcHint           template.HTML
 	Sponsors          []Sponsor

@@ -38,6 +38,18 @@ function renderMarkup(markup) {
     }
 }
 
+async function sha256Hex(message) {
+    const enc = new TextEncoder();
+    const data = enc.encode(message);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    const bytes = new Uint8Array(hash);
+    let s = '';
+    for (let i = 0; i < bytes.length; i++) {
+        s += bytes[i].toString(16).padStart(2, '0');
+    }
+    return s;
+}
+
 async function initPlay() {
     const lvl = await fetchCurrentLevel();
     
@@ -183,6 +195,15 @@ async function submitAnswer() {
         } else {
             ansRaw = ansRaw.trim();
             if (ansRaw === '') return;
+        }
+        const salt = 'public_salt_to_prevent_rainbow_tables';
+        if (typeof level_Answer_Hash !== 'undefined' && level_Answer_Hash !== '') {
+            const computed = await sha256Hex(salt + ansRaw);
+            if (computed !== level_Answer_Hash) {
+                const n = new Notyf();
+                n.error('Incorrect Answer');
+                return;
+            }
         }
         const url = `/submit?answer=${encodeURIComponent(ansRaw)}&type=${encodeURIComponent(type)}`;
         const resp = await fetch(url, { credentials: 'same-origin' });

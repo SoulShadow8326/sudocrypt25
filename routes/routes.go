@@ -142,6 +142,7 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 						} else {
 							td.SrcHint = htmltmpl.HTML("")
 						}
+						td.LevelAnswerHash = lvl.PublicHash
 					}
 				}
 			}
