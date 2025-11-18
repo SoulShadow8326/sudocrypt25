@@ -196,15 +196,7 @@ async function submitAnswer() {
             ansRaw = ansRaw.trim();
             if (ansRaw === '') return;
         }
-        const salt = 'public_salt_to_prevent_rainbow_tables';
-        if (typeof level_Answer_Hash !== 'undefined' && level_Answer_Hash !== '') {
-            const computed = await sha256Hex(salt + ansRaw);
-            if (computed !== level_Answer_Hash) {
-                const n = new Notyf();
-                n.error('Incorrect Answer');
-                return;
-            }
-        }
+        
         const url = `/submit?answer=${encodeURIComponent(ansRaw)}&type=${encodeURIComponent(type)}`;
         const resp = await fetch(url, { credentials: 'same-origin' });
         let data = null;
