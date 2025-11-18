@@ -2,6 +2,7 @@ let currentUser = '';
 let currentChecksum = '';
 let currentUserCTF = '';
 let currentChecksumCTF = '';
+let currentCTFLevel = '';
 const lastRenderedMaxID = {};
 let adminListChecksum = '';
 
@@ -108,6 +109,8 @@ function renderThread(user, data) {
   
   cont.innerHTML = '';
   msgs.forEach(m => {
+    const level = m.level_id || m.LevelID || m.level || m.Level || '';
+    if (String(level || '').toLowerCase().startsWith('ctf')) return;
     const row = document.createElement('div');
     const isFromAdmin = (m.from === me || m.from === adminAddress);
     row.className = 'msg-row' + (isFromAdmin ? ' msg-me' : '');
@@ -116,7 +119,6 @@ function renderThread(user, data) {
     bubble.className = 'msg-bubble';
     const content = document.createElement('div');
     content.className = 'msg-content';
-    const level = m.level_id || m.LevelID || m.level || m.Level || '';
     if (level) {
       const lvlEl = document.createElement('div');
       lvlEl.className = 'msg-level';
@@ -237,6 +239,9 @@ async function renderInternalCheckpoints(user) {
       section.appendChild(title);
 
       const levelId = (Array.isArray(arr) && arr.length > 0 && typeof arr[0] === 'string') ? arr[0] : null;
+      if (type === 'ctf') {
+        currentCTFLevel = levelId || '';
+      }
       const progressVal = (Array.isArray(arr) && arr.length > 1) ? Number(arr[1] || 0) : 0;
 
       const info = document.createElement('div');
@@ -516,6 +521,19 @@ async function sendToCurrentCTF() {
   const content = (input.value || '').trim();
   if (!content || !currentUserCTF) return;
   try {
+    // prefer the selected user's known CTF level, fall back to DOM or generic
+    let inferredLevel = currentCTFLevel || '';
+    try {
+      if (!inferredLevel) {
+        const cont = document.getElementById('adminChatMessagesCTF');
+        if (cont) {
+          const lvls = cont.querySelectorAll('.msg-level');
+          if (lvls && lvls.length > 0) inferredLevel = lvls[lvls.length - 1].textContent || '';
+        }
+      }
+    } catch (e) {}
+    if (!inferredLevel) inferredLevel = 'ctf';
+
     (function optimisticAppend() {
       const cont = document.getElementById('adminChatMessagesCTF');
       const row = document.createElement('div');
@@ -535,7 +553,7 @@ async function sendToCurrentCTF() {
       method: 'POST', 
       headers: { 'Content-Type': 'application/json' }, 
       credentials: 'same-origin', 
-      body: JSON.stringify({ to: currentUserCTF, type: 'message', content }) 
+      body: JSON.stringify({ to: currentUserCTF, type: 'message', content, level: inferredLevel }) 
     });
     if (!resp.ok) {
       try { const data = await resp.json().catch(()=>null); } catch(e) {}
