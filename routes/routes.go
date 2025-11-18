@@ -203,8 +203,32 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	http.HandleFunc("/api/play/current", handlers.CurrentLevelHandler(dbConn))
 	http.HandleFunc("/api/leaderboard", handlers.LeaderboardAPIHandler(dbConn, admins))
 	http.HandleFunc("/api/levels", handlers.LevelsListHandler(dbConn))
-	http.HandleFunc("/api/admin/announcements/set", handlers.SetAnnouncementHandler(dbConn, admins))
-	http.HandleFunc("/api/admin/announcements/delete", handlers.DeleteAnnouncementHandler(dbConn, admins))
+	http.HandleFunc("/api/admin/announcements/set", func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		email, err := handlers.GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" || admins == nil || !admins.IsAdmin(email) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		handlers.SetAnnouncementHandler(dbConn, admins)(w, r)
+	})
+	http.HandleFunc("/api/admin/announcements/delete", func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		email, err := handlers.GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" || admins == nil || !admins.IsAdmin(email) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		handlers.DeleteAnnouncementHandler(dbConn, admins)(w, r)
+	})
 	http.HandleFunc("/api/admin/user/progress", handlers.AdminUpdateUserProgressHandler(dbConn, admins))
 	http.HandleFunc("/api/admin/users", handlers.AdminListUsersHandler(dbConn, admins))
 	http.HandleFunc("/api/admin/user", handlers.AdminUserActionHandler(dbConn, admins))
@@ -214,7 +238,19 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 		handlers.SendMessageHandler(dbConn, admins)(w, r)
 	})
 	http.HandleFunc("/api/me", handlers.MeHandler(dbConn, admins))
-	http.HandleFunc("/api/logs", handlers.LogsHandler(dbConn, admins))
+	http.HandleFunc("/api/logs", func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		email, err := handlers.GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" || admins == nil || !admins.IsAdmin(email) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		handlers.LogsHandler(dbConn, admins)(w, r)
+	})
 	http.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
 		c, err := r.Cookie("session_id")
 		if err != nil || c.Value == "" {
@@ -267,5 +303,17 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	http.HandleFunc("/api/user/update_bio", handlers.UpdateBioHandler(dbConn))
 	http.HandleFunc("/profile/", handlers.UserProfileHandler(dbConn, admins))
 
-	http.HandleFunc("/api/attempt_logs", handlers.AttemptLog(dbConn, admins))
+	http.HandleFunc("/api/attempt_logs", func(w http.ResponseWriter, r *http.Request) {
+		c, err := r.Cookie("session_id")
+		if err != nil || c.Value == "" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		email, err := handlers.GetEmailFromRequest(dbConn, r)
+		if err != nil || email == "" || admins == nil || !admins.IsAdmin(email) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		handlers.AttemptLog(dbConn, admins)(w, r)
+	})
 }
