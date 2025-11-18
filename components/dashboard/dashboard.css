@@ -61,6 +61,11 @@ body {
     background: #22263a;
 }
 
+.admin-chat-item.unread {
+    color: #ff4d4d;
+    font-weight: 700;
+}
+
 .admin-chat-main {
     flex: 1;
     background: #171923;

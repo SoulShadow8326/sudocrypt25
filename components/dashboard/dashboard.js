@@ -31,14 +31,18 @@ function buildConversationList(allMsgs) {
     const prev = map.get(other);
     const ts = Number(m.created_at || m.CreatedAt || 0);
     const otherName = (m.from && String(m.from).toLowerCase() === String(other).toLowerCase()) ? (m.from_name || other) : (m.to_name || other);
-    if (!prev || ts > Number(prev.ts || 0)) map.set(other, { last: m.content, ts, name: otherName });
+    const isIncomingToAdmin = (m.to === adminAddress);
+    const isUnread = Number(m.read || 0) === 0 && isIncomingToAdmin && String(m.from || '').toLowerCase() === String(other).toLowerCase();
+    if (!prev || ts > Number(prev.ts || 0)) map.set(other, { last: m.content, ts, name: otherName, unread: isUnread });
+    else if (prev && isUnread) map.set(other, Object.assign({}, prev, { unread: true }));
   });
   const items = Array.from(map.entries()).sort((a,b)=> Number(b[1].ts || 0) - Number(a[1].ts || 0));
   const cont = document.getElementById('adminChatList');
   cont.innerHTML = '';
   items.forEach(([email, meta]) => {
     const d = document.createElement('div');
-    d.className = 'admin-chat-item' + (email === currentUser ? ' active' : '');
+    d.className = 'admin-chat-item' + (email === currentUser ? ' active' : '') + (meta && meta.unread ? ' unread' : '');
+    d.dataset.email = email;
     d.textContent = meta.name || email;
     d.addEventListener('click', () => { selectConversation(email); });
     cont.appendChild(d);
@@ -310,6 +314,8 @@ async function bootstrap() {
   }
   document.getElementById('adminChatSend').addEventListener('click', sendToCurrent);
   document.getElementById('adminChatInput').addEventListener('keydown', function(e){ if (e.key==='Enter') sendToCurrent(); });
+  const markBtn = document.getElementById('adminMarkRead');
+  if (markBtn) markBtn.addEventListener('click', markCurrentAsRead);
   pollThreadLoop();
 
 
@@ -321,6 +327,27 @@ async function bootstrap() {
   }
   document.addEventListener('visibilitychange', function(){ if (!document.hidden) visibilityRefresh(); });
   window.addEventListener('focus', visibilityRefresh);
+}
+
+async function markCurrentAsRead() {
+  try {
+    if (!currentUser) return;
+    const resp = await fetch('/api/admin/messages/mark_read', { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: currentUser }) });
+    if (!resp.ok) return;
+    const js = await resp.json().catch(()=>null);
+    try { const all = await fetchAllMessages(); if (all && all.messages) buildConversationList(all.messages || []); } catch(e) {}
+    try { const data = await fetchThread(currentUser, ''); if (data) { currentChecksum = data.checksum || ''; renderThread(currentUser, data); } } catch(e) {}
+    const listEl = document.getElementById('adminChatList');
+    if (listEl) {
+      const items = listEl.querySelectorAll('.admin-chat-item');
+      items.forEach(it => {
+        if ((it.textContent || '').trim() === (currentUser || '').trim() || it.dataset && it.dataset.email === currentUser) {
+          it.classList.remove('unread');
+        }
+      });
+    }
+    return js;
+  } catch (e) {}
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);

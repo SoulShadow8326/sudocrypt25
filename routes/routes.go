@@ -184,6 +184,7 @@ func InitRoutes(dbConn *sql.DB, admins *handlers.Admins) {
 	http.HandleFunc("/api/admin/users", handlers.AdminListUsersHandler(dbConn, admins))
 	http.HandleFunc("/api/admin/user", handlers.AdminUserActionHandler(dbConn, admins))
 	http.HandleFunc("/api/messages", handlers.ListMessagesHandler(dbConn, admins))
+	http.HandleFunc("/api/admin/messages/mark_read", handlers.MarkMessagesReadHandler(dbConn, admins))
 	http.HandleFunc("/api/message/send", func(w http.ResponseWriter, r *http.Request) {
 		handlers.SendMessageHandler(dbConn, admins)(w, r)
 	})

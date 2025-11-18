@@ -328,3 +328,71 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 		json.NewEncoder(w).Encode(map[string]interface{}{"checksum": checksum, "announcements_checksum": annChecksum, "messages": out, "hints": hintsList, "leads_enabled": leadsEnabledForType})
 	}
 }
+
+func MarkMessagesReadHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		requester, err := GetEmailFromRequest(dbConn, r)
+		if err != nil || requester == "" {
+			http.Error(w, "unauthenticated", http.StatusUnauthorized)
+			return
+		}
+		if admins == nil || !admins.IsAdmin(requester) {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+
+		var payload map[string]interface{}
+		if strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+			defer r.Body.Close()
+			json.NewDecoder(r.Body).Decode(&payload)
+		} else {
+			r.ParseForm()
+			payload = map[string]interface{}{"email": r.FormValue("email"), "upto_id": r.FormValue("upto_id")}
+		}
+		emailRaw, _ := payload["email"].(string)
+		email := strings.ToLower(strings.TrimSpace(emailRaw))
+		if email == "" {
+			http.Error(w, "missing email", http.StatusBadRequest)
+			return
+		}
+
+		uptoVal := int64(0)
+		if v, ok := payload["upto_id"]; ok && v != nil {
+			switch tv := v.(type) {
+			case float64:
+				uptoVal = int64(tv)
+			case string:
+				if s := strings.TrimSpace(tv); s != "" {
+					if parsed, err := strconv.ParseInt(s, 10, 64); err == nil {
+						uptoVal = parsed
+					}
+				}
+			}
+		}
+
+		adminInbox := "admin@sudocrypt.com"
+		var res sql.Result
+		var execErr error
+		if uptoVal > 0 {
+			res, execErr = dbConn.Exec(`UPDATE messages SET read = 1 WHERE json_extract(data, '$.from') = ? AND json_extract(data, '$.to') = ? AND id <= ? AND read = 0`, email, adminInbox, uptoVal)
+		} else {
+			res, execErr = dbConn.Exec(`UPDATE messages SET read = 1 WHERE json_extract(data, '$.from') = ? AND json_extract(data, '$.to') = ? AND read = 0`, email, adminInbox)
+		}
+		if execErr != nil {
+			http.Error(w, "db error", http.StatusInternalServerError)
+			return
+		}
+		affected := int64(0)
+		if res != nil {
+			if n, err := res.RowsAffected(); err == nil {
+				affected = n
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"success": true, "updated": affected})
+	}
+}
