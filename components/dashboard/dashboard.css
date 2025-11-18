@@ -107,6 +107,9 @@ body {
     border-radius: 10px;
     background: #262a3f;
     max-width: 80%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-wrap;
 }
 
 .msg-me .msg-bubble {
@@ -117,6 +120,14 @@ body {
 .msg-content {
     font-size: 14px;
     line-height: 1.4;
+}
+
+.msg-content {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-wrap;
+    max-width: 70ch;
+    display: inline-block;
 }
 
 .admin-chat-input {
