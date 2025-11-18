@@ -149,56 +149,6 @@ func AILeadHandler(dbConn *sql.DB) http.HandlerFunc {
 
 		userQuestion := strings.TrimSpace(payload["question"])
 		if userQuestion != "" {
-			key := pickGeminiKey()
-			if key == "" {
-			} else {
-				var cli *genai.Client
-				var err error
-				geminiMu.Lock()
-				prev := os.Getenv("GEMINI_API_KEY")
-				os.Setenv("GEMINI_API_KEY", key)
-				cli, err = genai.NewClient(context.Background(), nil)
-				os.Setenv("GEMINI_API_KEY", prev)
-				geminiMu.Unlock()
-				if err != nil {
-					http.Error(w, "llm client error", http.StatusInternalServerError)
-					return
-				}
-				ctx2, cancel2 := context.WithTimeout(context.Background(), 8*time.Second)
-				checkPrompt := "Is the following user question a yes/no (true/false) question? Reply with ONLY the word true or false (lowercase).\n\nQuestion:\n" + userQuestion
-				res2, err := cli.Models.GenerateContent(ctx2, "gemini-2.5-flash", genai.Text(checkPrompt), nil)
-				cancel2()
-				if err != nil || res2 == nil {
-				} else {
-					checkOut := strings.TrimSpace(res2.Text())
-					re := regexp.MustCompile(`(?i)\b(true|false)\b`)
-					cm := re.FindStringSubmatch(checkOut)
-					isTF := false
-					if len(cm) >= 2 {
-						isTF = strings.ToLower(cm[1]) == "true"
-					} else {
-						re2 := regexp.MustCompile(`(?i)\b(yes|no)\b`)
-						cm2 := re2.FindStringSubmatch(checkOut)
-						if len(cm2) >= 2 {
-							isTF = strings.ToLower(cm2[1]) == "yes"
-						}
-					}
-					if !isTF {
-						userEmail := strings.ToLower(emailC)
-						userQuestion := strings.TrimSpace(payload["question"])
-						if userQuestion != "" {
-							userVal := strings.Join([]string{userEmail, "admin@sudocrypt.com", lvlID, "lead", userQuestion}, "|")
-							_ = dbpkg.Set(dbConn, "messages", userEmail, userVal)
-						}
-						msg := "Please ask a True or False question for the AI to respond"
-						aiVal := strings.Join([]string{"admin@sudocrypt.com", userEmail, lvlID, "lead", msg}, "|")
-						_ = dbpkg.Set(dbConn, "messages", userEmail, aiVal)
-						http.Error(w, msg, http.StatusBadRequest)
-						return
-					}
-				}
-			}
-
 			userEmail := strings.ToLower(emailC)
 			msgsMap, _ := dbpkg.GetAll(dbConn, "messages")
 			history := make([]struct {
