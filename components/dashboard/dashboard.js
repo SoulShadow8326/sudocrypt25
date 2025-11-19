@@ -7,13 +7,47 @@ const lastRenderedMaxID = {};
 let adminListChecksum = '';
 
 async function fetchAllMessages() {
-  const url = adminListChecksum ? ('/api/messages?mode=admin&checksum=' + encodeURIComponent(adminListChecksum)) : '/api/messages?mode=admin';
+  const url = adminListChecksum ? ('/api/messages?mode=admin&summary=1&checksum=' + encodeURIComponent(adminListChecksum)) : '/api/messages?mode=admin&summary=1';
   const resp = await fetch(url, { credentials: 'same-origin' });
   if (!resp.ok && resp.status !== 304) throw new Error('messages list failed: ' + resp.status);
   if (resp.status === 304) return { checksum: adminListChecksum, messages: null };
   const js = await resp.json();
   adminListChecksum = js.checksum || adminListChecksum;
   return js;
+}
+
+function buildConversationListFromSummaries(summaries) {
+  const cont = document.getElementById('adminChatList');
+  cont.innerHTML = '';
+  const items = Array.isArray(summaries) ? summaries.sort((a,b)=> Number(b.ts||0) - Number(a.ts||0)) : [];
+  items.forEach(meta => {
+    const email = meta && (meta.email || meta.email_address || '') || '';
+    const name = meta && (meta.name || meta.display || '') || email;
+    const unread = !!(meta && meta.unread);
+    const d = document.createElement('div');
+    d.className = 'admin-chat-item' + (email === currentUser ? ' active' : '') + (unread ? ' unread' : '');
+    d.dataset.email = email;
+    d.textContent = name || email;
+    d.addEventListener('click', () => { selectConversation(email); });
+    cont.appendChild(d);
+  });
+}
+
+function buildConversationListCTFFromSummaries(summaries) {
+  const cont = document.getElementById('adminChatListCTF');
+  cont.innerHTML = '';
+  const items = Array.isArray(summaries) ? summaries.filter(s=> !!s.ctf).sort((a,b)=> Number(b.ts||0) - Number(a.ts||0)) : [];
+  items.forEach(meta => {
+    const email = meta && (meta.email || meta.email_address || '') || '';
+    const name = meta && (meta.name || meta.display || '') || email;
+    const unread = !!(meta && meta.unread);
+    const d = document.createElement('div');
+    d.className = 'admin-chat-item' + (email === currentUserCTF ? ' active' : '') + (unread ? ' unread' : '');
+    d.dataset.email = email;
+    d.textContent = name || email;
+    d.addEventListener('click', () => { selectConversationCTF(email); });
+    cont.appendChild(d);
+  });
 }
 
 function buildConversationList(allMsgs) {
@@ -439,9 +473,12 @@ async function pollThreadLoop() {
   while (true) {
     try {
       const all = await fetchAllMessages();
-      if (all && all.messages) {
-        buildConversationList(all.messages || []);
-        buildConversationListCTF(all.messages || []);
+      if (all) {
+        const summaries = all.summaries || all.messages || null;
+        if (summaries) {
+          buildConversationListFromSummaries(summaries || []);
+          buildConversationListCTFFromSummaries(summaries || []);
+        }
       }
       
       if (currentUser) {
@@ -571,8 +608,11 @@ async function sendToCurrentCTF() {
 async function bootstrap() {
   try {
     const all = await fetchAllMessages();
-    buildConversationList(all.messages || []);
-    buildConversationListCTF(all.messages || []);
+    const summaries = all.summaries || all.messages || null;
+    if (summaries) {
+      buildConversationListFromSummaries(summaries || []);
+      buildConversationListCTFFromSummaries(summaries || []);
+    }
   } catch (e) {
   }
   document.getElementById('adminChatSend').addEventListener('click', sendToCurrent);
@@ -593,7 +633,7 @@ async function bootstrap() {
       fetchThread(currentUser, '').then(data => { if (data) { currentChecksum = data.checksum || ''; renderThread(currentUser, data); } });
     }
     if (currentUserCTF) fetchThread(currentUserCTF, '').then(data => { if (data) { currentChecksumCTF = data.checksum || ''; renderThreadCTF(currentUserCTF, data); } });
-    fetchAllMessages().then(all => { if (all && all.messages) { buildConversationList(all.messages || []); buildConversationListCTF(all.messages || []); } }).catch(()=>{});
+    fetchAllMessages().then(all => { if (all) { const summaries = all.summaries || all.messages || null; if (summaries) { buildConversationListFromSummaries(summaries || []); buildConversationListCTFFromSummaries(summaries || []); } } }).catch(()=>{});
   }
   document.addEventListener('visibilitychange', function(){ if (!document.hidden) visibilityRefresh(); });
   window.addEventListener('focus', visibilityRefresh);
@@ -605,7 +645,7 @@ async function markCurrentAsRead() {
     const resp = await fetch('/api/admin/messages/mark_read', { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: currentUser }) });
     if (!resp.ok) return;
     const js = await resp.json().catch(()=>null);
-    try { const all = await fetchAllMessages(); if (all && all.messages) buildConversationList(all.messages || []); } catch(e) {}
+    try { const all = await fetchAllMessages(); if (all) { const summaries = all.summaries || all.messages || null; if (summaries) buildConversationListFromSummaries(summaries || []); } } catch(e) {}
     try { const data = await fetchThread(currentUser, ''); if (data) { currentChecksum = data.checksum || ''; renderThread(currentUser, data); } } catch(e) {}
     const listEl = document.getElementById('adminChatList');
     if (listEl) {
@@ -626,7 +666,7 @@ async function markCurrentAsReadCTF() {
     const resp = await fetch('/api/admin/messages/mark_read', { method: 'POST', credentials: 'same-origin', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: currentUserCTF }) });
     if (!resp.ok) return;
     const js = await resp.json().catch(()=>null);
-    try { const all = await fetchAllMessages(); if (all && all.messages) { buildConversationList(all.messages || []); buildConversationListCTF(all.messages || []); } } catch(e) {}
+    try { const all = await fetchAllMessages(); if (all) { const summaries = all.summaries || all.messages || null; if (summaries) { buildConversationListFromSummaries(summaries || []); buildConversationListCTFFromSummaries(summaries || []); } } } catch(e) {}
     try { const data = await fetchThread(currentUserCTF, ''); if (data) { currentChecksumCTF = data.checksum || ''; renderThreadCTF(currentUserCTF, data); } } catch(e) {}
     const listEl = document.getElementById('adminChatListCTF');
     if (listEl) {

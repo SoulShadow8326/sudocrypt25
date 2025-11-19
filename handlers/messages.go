@@ -266,6 +266,87 @@ func ListMessagesHandler(dbConn *sql.DB, admins *Admins) http.HandlerFunc {
 				return
 			}
 		}
+
+		summaryParam := strings.TrimSpace(q.Get("summary"))
+		isSummary := summaryParam != "" && (summaryParam == "1" || strings.EqualFold(summaryParam, "true"))
+
+		if isSummary {
+			adminAddress := "admin@sudocrypt.com"
+			type sumObj struct {
+				email  string
+				name   string
+				last   string
+				ts     int64
+				unread bool
+				ctf    bool
+			}
+			mmap := map[string]*sumObj{}
+			me := requesterRaw
+			for _, m := range msgs {
+				lvl := strings.TrimSpace(m.LevelID)
+				isCTF := strings.HasPrefix(strings.ToLower(lvl), "ctf")
+				var other string
+				if strings.EqualFold(m.From, adminAddress) {
+					other = m.To
+				} else if strings.EqualFold(m.To, adminAddress) {
+					other = m.From
+				} else if strings.EqualFold(m.From, me) {
+					other = m.To
+				} else if strings.EqualFold(m.To, me) {
+					other = m.From
+				} else {
+					continue
+				}
+				if other == "" || strings.EqualFold(other, adminAddress) {
+					continue
+				}
+				key := strings.ToLower(other)
+				s, ok := mmap[key]
+				if !ok {
+					s = &sumObj{email: other, name: "", last: m.Content, ts: m.CreatedAt, unread: false, ctf: isCTF}
+					// try to get name
+					if acctRaw, err := dbpkg.Get(dbConn, "accounts", key); err == nil {
+						var acct map[string]interface{}
+						if json.Unmarshal([]byte(acctRaw), &acct) == nil {
+							if n, ok := acct["name"].(string); ok && n != "" {
+								s.name = n
+							}
+						}
+					}
+					// unread if incoming to admin and read == 0 and from == other
+					if m.Read == 0 && strings.EqualFold(m.To, adminAddress) && strings.EqualFold(m.From, other) {
+						s.unread = true
+					}
+					mmap[key] = s
+				} else {
+					// update last if newer
+					if m.CreatedAt > s.ts {
+						s.last = m.Content
+						s.ts = m.CreatedAt
+					}
+					if !s.unread {
+						if m.Read == 0 && strings.EqualFold(m.To, adminAddress) && strings.EqualFold(m.From, other) {
+							s.unread = true
+						}
+					}
+				}
+			}
+			// build list
+			keys := make([]string, 0, len(mmap))
+			for k := range mmap {
+				keys = append(keys, k)
+			}
+			sort.Slice(keys, func(i, j int) bool { return mmap[keys[i]].ts > mmap[keys[j]].ts })
+			outSumm := make([]map[string]interface{}, 0, len(keys))
+			for _, k := range keys {
+				s := mmap[k]
+				outSumm = append(outSumm, map[string]interface{}{"email": s.email, "name": s.name, "last": s.last, "ts": s.ts, "unread": s.unread, "ctf": s.ctf})
+			}
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]interface{}{"checksum": checksum, "announcements_checksum": annChecksum, "summaries": outSumm})
+			return
+		}
+
 		out := make([]map[string]interface{}, 0, len(msgs))
 		for _, m := range msgs {
 			isMe := strings.EqualFold(m.From, requesterRaw)
